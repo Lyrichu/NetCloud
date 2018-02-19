@@ -338,6 +338,27 @@ class NetCloudCrawl(object):
             ids_list.append(id)
         return ids_list
 
+    def get_lyrics(self):
+    	'''
+    	get music lyrics
+    	:return: json format music lyrics
+    	'''
+    	lyrics_url = "http://music.163.com/api/song/lyric?os=pc&id={id}&lv=-1&kv=-1&tv=-1".format(id = self.song_id)
+    	lyrics = requests.get(lyrics_url,headers = self.headers,proxies = self.proxies).text 
+    	return lyrics
+
+    def save_lyrics_to_file(self):
+    	lyrics_json = json.loads(self.get_lyrics())
+    	lyrics_str = lyrics_json['lrc']['lyric']
+    	pattern = r'\[\d+:\d+\.\d+\](.+?\n)'
+    	lyrics_list = re.findall(pattern,lyrics_str)
+    	save_path = os.path.join(self.song_path,"{song_name}_lyrics.txt".format(song_name = self.song_name))
+    	with open(save_path,"w",encoding = "utf-8") as f:
+    		f.write("{song_name}\n{singer_name}\n".format(song_name = self.song_name,singer_name = self.singer_name))
+    		f.writelines(lyrics_list)
+    	print("save {save_path} successfully!".format(save_path = save_path))
+
+
     def save_singer_all_hot_comments_to_file(self):
         '''
         get a singer's all hot songs' hot comments
@@ -376,6 +397,13 @@ class NetCloudCrawl(object):
     def _test_threading_save_all_comments_to_file(self):
         self.threading_save_all_comments_to_file()
 
+    def _test_get_lyrics(self):
+    	lyrics = self.get_lyrics()
+    	print(lyrics)
+    	print(type(lyrics))
+
+    def _test_save_lyrics_to_file(self):
+    	self.save_lyrics_to_file()
 
     def _test_netcloudcrawler_all(self):
         '''
@@ -391,14 +419,16 @@ class NetCloudCrawl(object):
 
 
 # if __name__ == '__main__':
-#     song_name = '晴天'
-#     song_id = 186016
+#     song_name = '七里香'
+#     song_id = 186001
 #     singer_name = '周杰伦'
 #     singer_id = 6452
 #     netcloud_spider = NetCloudCrawl(song_name = song_name, song_id = song_id,
 #                                     singer_name = singer_name,singer_id = singer_id)
 #     #netcloud_spider._test_netcloudcrawler_all()
-#     netcloud_spider.generate_all_necessary_files(100)
+#     #netcloud_spider.generate_all_necessary_files(100)
+#     #netcloud_spider._test_get_lyrics()
+#     netcloud_spider._test_save_lyrics_to_file()
     
 
 
