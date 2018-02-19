@@ -824,35 +824,35 @@ class InvalidMethod(NetCloudLoginException):
 	pass
 	
 	
-if __name__ == '__main__':
-	phone = '15527594439'
-	password = 'hcc199521'
-	email = None
-	rememberLogin = True
-	login = NetCloudLogin(phone = phone,password = password,email = email,rememberLogin = rememberLogin)
-	#login._test_login()
-	#login._test_get_user_play_list()
-	#login._test_get_self_play_list()
-	#login._test_get_user_dj()
-	#login._test_get_self_dj()
-	login._test_search()
-	#login._test_get_user_follows()
-	#login._test_get_self_follows()
-	#login._test_get_user_fans()
-	#login._test_get_self_fans()
-	#login._test_get_user_event()
-	#login._test_get_self_event()
-	#login._test_get_user_record()
-	#login._test_get_self_record()
-	#login._test_get_friends_event()
-	#login._test_get_top_playlist_highquality()
-	#login._test_get_play_list_detail()
-	#login._test_get_music_download_url()
-	#login._test_get_lyric()
-	#login._test_get_music_comments()
-	#login._test_get_album_comments()
-	#login._test_get_songs_detail()
-	#login._test_get_self_fm()
-	#login._test_pretty_print_self_info()
-	#login._test_pretty_print_user_play_list()
-	#login._test_pretty_print_self_play_list()
+# if __name__ == '__main__':
+# 	phone = 'xxxxxxxxxxx'
+# 	password = 'xxx'
+# 	email = None
+# 	rememberLogin = True
+# 	login = NetCloudLogin(phone = phone,password = password,email = email,rememberLogin = rememberLogin)
+# 	login._test_login()
+# 	login._test_get_user_play_list()
+# 	login._test_get_self_play_list()
+# 	login._test_get_user_dj()
+# 	login._test_get_self_dj()
+# 	login._test_search()
+# 	login._test_get_user_follows()
+# 	login._test_get_self_follows()
+# 	login._test_get_user_fans()
+# 	login._test_get_self_fans()
+# 	login._test_get_user_event()
+# 	login._test_get_self_event()
+# 	login._test_get_user_record()
+# 	login._test_get_self_record()
+# 	login._test_get_friends_event()
+# 	login._test_get_top_playlist_highquality()
+# 	login._test_get_play_list_detail()
+# 	login._test_get_music_download_url()
+# 	login._test_get_lyric()
+# 	login._test_get_music_comments()
+# 	login._test_get_album_comments()
+# 	login._test_get_songs_detail()
+# 	login._test_get_self_fm()
+# 	login._test_pretty_print_self_info()
+# 	login._test_pretty_print_user_play_list()
+# 	login._test_pretty_print_self_play_list()
