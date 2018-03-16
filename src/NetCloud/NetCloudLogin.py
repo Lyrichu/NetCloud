@@ -21,6 +21,9 @@ import requests
 import hashlib
 import json
 import os
+import re 
+import random 
+import urllib 
 from Crypto.Cipher import AES
 import base64 
 import traceback 
@@ -636,6 +639,255 @@ class NetCloudLogin(object):
 		print("Your play list info is here:")
 		self.pretty_print_user_play_list(my_uid,offset,limit)
 
+	def pretty_print_search_song(self,search_song_name,offset = 0,limit = 30):
+		'''
+		pretty print the result of search a song
+		'''
+		# json result
+		res = self.search(keyword = search_song_name,type_ = 1,offset = offset,limit = limit).json()
+		num = len(res['result']['songs']) # search result num
+		print("Your search song name is:",search_song_name)
+		print("Here is your search result(total %d):" % num)
+		for index,content in enumerate(res['result']['songs'],1):
+			print("-"*20,"  search result %d  " %index,"-"*20)
+			print("song name:",content['name'])
+			print("alias:",content['alias'])
+			print("singer:",end = "")
+			for artist in content['artists']:
+				print(artist['name'],end = " ")
+			print("\nalbum:",content['album']['name'])
+			print("album publish time:",NetCloudAnalyse("","").from_timestamp_to_date(content['album']['publishTime']*0.001,format = "%Y-%m-%d"))
+			print("song duration:",content['duration']//60000,"m",(content['duration']//1000 % 60),"s")
+			print("song id:",content["id"])
+			print("singer id:",end = "")
+			for artist in content["artists"]:
+				print(artist['id'],end = " ")
+			print("\nalbum id:",content['album']['id'])
+			print("mv id:",content["mvid"])
+
+	def pretty_print_search_singer(self,search_singer_name,offset = 0,limit = 30):
+		'''
+		pretty print the result of search singer
+		'''
+		res = self.search(search_singer_name,type_ = 100,offset = offset,limit = limit).json()
+		print("Your search singer name is:",search_singer_name)
+		total = res['result']['artistCount']
+		print("Here is your search result(total %d):" % total)
+		for index,content in enumerate(res['result']['artists'],1):
+			print("-"*20,"  search result %d  " % index,"-"*20)
+			print("singer name:",content['name'])
+			print("alias:",end = "")
+			for alia in content['alias']:
+				print(alia,end = " ")
+			print("\nsinger id:",content["id"])
+			print("singer image url:",content["img1v1Url"])
+			print("singer mv count:",content["mvSize"])
+			print("singer album count:",content["albumSize"])
+
+	def pretty_print_search_play_list(self,keyword,offset = 0,limit = 30):
+		'''
+		pretty print the result of search play list
+		'''
+		res = self.search(keyword,type_ = 1000,offset = offset,limit = limit).json()
+		total = res['result']['playlistCount']
+		num = len(res['result']['playlists']) # search limit result count
+		print("Your search play list keyword is:",keyword)
+		print("There are total %d play lists!" % total)
+		print("Here is your search result(%d count):" %num)
+		for index,content in enumerate(res['result']['playlists'],1):
+			print("-"*20,"  search result %d  " % index,"-"*20)
+			print("play list name:",content['name'])
+			print("play list creator name:",content['creator']['nickname'])
+			print("play list creator id:",content['creator']['userId'])
+			print("play list play count:",content['playCount'])
+			print("play list cover image url:",content["coverImgUrl"])
+			print("high quality:",content["highQuality"])
+			print("play list song count:",content["trackCount"])
+
+	def pretty_print_search_user(self,keyword,offset = 0,limit = 30):
+		'''
+		pretty print the result of search user info
+		'''
+		res = self.search(keyword,type_ = 1002,offset = offset,limit = limit).json()
+		num = len(res['result']["userprofiles"])
+		print("Your search user keyword is:",keyword)
+		print("Here is your search result(%d count):" % num)
+		from_timestamp_to_date = NetCloudAnalyse("","").from_timestamp_to_date 
+		for index,content in enumerate(res['result']['userprofiles'],1):
+			print("-"*20,"  search result %d  " % index,"-"*20)
+			print("user name:",content['nickname'])
+			print("user signature:",content["signature"])
+			print("user description:",content["description"])
+			print("user detail description:",content["detailDescription"])
+			print("user id:",content["userId"])
+			print("province id:",content["province"])
+			print("city id:",content["city"])
+			print("gender:","male" if content["gender"] == 1 else "female")
+			print("birthday:",from_timestamp_to_date(content["birthday"]*0.001,"%Y-%m-%d"))
+			print("avatar url:",content["avatarUrl"])
+			print("background image url:",content["backgroundUrl"])
+
+	def pretty_print_user_follows(self,uid,offset = 0,limit = 30):
+		'''
+		pretty print user follows users' info
+		'''
+		res = self.get_user_follows(uid,offset = offset,limit = limit).json()
+		num = len(res['follow'])
+		print("User id %d 's follows list is(count %d):" %(uid,num))
+		for index,content in enumerate(res['follow'],1):
+			print("-"*20,"  follow %d  " %index,"-"*20)
+			print("user name:",content["nickname"])
+			print("user id:",content["userId"])
+			print("user signature:",content["signature"])
+			print("gender:","male" if content["gender"] == 1 else "female")
+			print("avatar url:",content["avatarUrl"])
+			print("play list count:",content["playlistCount"])
+			print("event count:",content["eventCount"])
+			print("fans count:",content["followeds"])
+			print("follows count:",content["follows"])
+
+	def pretty_print_user_fans(self,uid,offset = 0,limit = 30):
+		'''
+		pretty print user fans' info
+		'''
+		res = self.get_user_fans(uid,offset = offset,limit = limit).json()
+		num = len(res['followeds'])
+		print("User id %d 's fans list is(count %d):" %(uid,num))
+		from_timestamp_to_date = NetCloudAnalyse("","").from_timestamp_to_date
+		for index,content in enumerate(res['followeds'],1):
+			print("-"*20,"  fans %d  " %index,"-"*20)
+			print("user name:",content["nickname"])
+			print("user id:",content["userId"])
+			print("user signature:",content["signature"])
+			print("gender:","male" if content["gender"] == 1 else "female")
+			print("avatar url:",content["avatarUrl"])
+			print("play list count:",content["playlistCount"])
+			print("event count:",content["eventCount"])
+			print("fans count:",content["followeds"])
+			print("follows count:",content["follows"])
+			print("follow time:",from_timestamp_to_date(content["time"]*0.001,"%Y-%m-%d"))
+
+	def pretty_print_self_fans(self,offset = 0,limit = 30):
+		'''
+		pretty print user fans' info
+		'''
+		res = self.get_self_fans(offset = offset,limit = limit).json()
+		num = len(res['followeds'])
+		print("My fans list is(count %d):" %num)
+		from_timestamp_to_date = NetCloudAnalyse("","").from_timestamp_to_date
+		for index,content in enumerate(res['followeds'],1):
+			print("-"*20,"  fans %d  " %index,"-"*20)
+			print("user name:",content["nickname"])
+			print("user id:",content["userId"])
+			print("user signature:",content["signature"])
+			print("gender:","male" if content["gender"] == 1 else "female")
+			print("avatar url:",content["avatarUrl"])
+			print("play list count:",content["playlistCount"])
+			print("event count:",content["eventCount"])
+			print("fans count:",content["followeds"])
+			print("follows count:",content["follows"])
+			print("follow time:",from_timestamp_to_date(content["time"]*0.001,"%Y-%m-%d"))
+
+	def get_download_urls_by_ids(self,ids_list):
+		urls_list = []
+		for content in self.get_music_download_url(ids = ids_list).json()['data']:
+			urls_list.append(content['url']) 
+		return urls_list
+
+	def get_songs_name_list_by_ids_list(self,ids_list):
+		'''
+		get songs name list by songs id list
+		:param ids_list: songs id list
+		:return:songs name list
+		'''
+		songs_name_list = []
+		for content in self.get_songs_detail(ids_list).json()['songs']:
+			song_name = content['name']
+			singer_name = "/".join([c['name'] for c in content['ar']])
+			songs_name_list.append(song_name+"(%s)" %singer_name)
+
+		return songs_name_list
+
+
+	def download_play_list_songs(self,play_list_id,save_root_dir = "."):
+		'''
+		download all play list songs
+		'''
+		res = self.get_play_list_detail(play_list_id,10000).json()
+		songs_id_list = []
+		for content in res['playlist']["trackIds"]:
+			songs_id_list.append(content['id'])
+		play_list_name = res['playlist']['name']
+		save_path = os.path.join(save_root_dir,play_list_name + "(歌单)")
+		if not os.path.exists(save_path):
+			os.mkdir(save_path)
+		songs_name_list = self.get_songs_name_list_by_ids_list(songs_id_list)
+		urls_list = self.get_download_urls_by_ids(songs_id_list)
+		# download music from urls
+		total = len(urls_list)
+		print("play list %s has total %d songs!" %(play_list_name,total))
+		print("Now start download musics of %s(save path is:%s):" %(play_list_name,save_path))
+		for index,url in enumerate(urls_list,1):
+			try:
+				urllib.request.urlretrieve(url,os.path.join(save_path,"%s.mp3" %songs_name_list[index-1]))
+				print("Successfully download %d/%d(%s)!" %(index,total,songs_name_list[index-1])) 
+			except Exception:
+				print("Fail download %d/%d(%s)!" %(index,total,songs_name_list[index-1]))
+				continue 
+
+
+	def get_singer_id_by_name(self,singer_name):
+		'''
+		get singer id by name
+		'''
+		res = self.search(singer_name,type_ = 100).json()
+		singer_id = res['result']['artists'][0]["id"]
+		return singer_id
+
+	def get_song_id_by_name(self,song_name):
+		res = self.search(song_name,type_ = 1).json()
+		song_id = res['result']['songs'][0]['id']
+		return song_id
+
+
+	def get_lyrics_list_by_id(self,song_id):
+		lyrics_dict = self.get_lyric(song_id).json()
+		lyrics_str = lyrics_dict['lrc']['lyric']
+		pattern = r'\[\d+:\d+\.\d+\](.+?\n)'
+		lyrics_list = re.findall(pattern,lyrics_str)
+		return lyrics_list
+
+	def get_lyrics_list_by_name(self,song_name):
+		song_id = self.get_song_id_by_name(song_name)
+		return self.get_lyrics_list_by_id(song_id)
+
+		
+	def download_singer_hot_songs_by_name(self,singer_name,save_root_dir = "."):
+		'''
+		download singer hot songs by singer name
+		'''
+		uid = self.get_singer_id_by_name(singer_name)
+		singer_url = "http://music.163.com/artist?id=%d" %uid
+		hot_songs_ids = NetCloudCrawl(song_name = "",singer_name = "",singer_id = uid,song_id = 1).get_singer_hot_songs_ids(singer_url)
+		urls_list = self.get_download_urls_by_ids(hot_songs_ids)
+		songs_name_list = self.get_songs_name_list_by_ids_list(hot_songs_ids)
+		total = len(hot_songs_ids)
+		if not os.path.exists(os.path.join(save_root_dir,singer_name)):
+			os.mkdir(os.path.join(save_root_dir,singer_name))
+		save_path = os.path.join(save_root_dir,singer_name,"热门歌曲")
+		if not os.path.exists(save_path):
+			os.mkdir(save_path)
+		print("%s has total %d hot songs!" %(singer_name,total))
+		print("Now start download hot musics of %s(save path is:%s):" %(singer_name,save_path))
+		for index,url in enumerate(urls_list,1):
+			try:
+				urllib.request.urlretrieve(url,os.path.join(save_path,"%s.mp3" %songs_name_list[index-1]))
+				print("Successfully download %d/%d(%s)!" %(index,total,songs_name_list[index-1])) 
+			except Exception:
+				print("Fail download %d/%d(%s)!" %(index,total,songs_name_list[index-1]))
+				continue 
+
+
 	def _test_login(self):
 		response = self.login()
 		print(response.json())
@@ -650,7 +902,7 @@ class NetCloudLogin(object):
 		print(response.json())
 
 	def _test_get_user_dj(self):
-		uid = 103413749
+		uid = 1186346
 		response = self.get_user_dj(uid)
 		print(response.json())
 
@@ -744,7 +996,7 @@ class NetCloudLogin(object):
 		print(response.json())
 
 	def _test_get_songs_detail(self):
-		ids = [526464293]
+		ids = ['208902', '27747330','529747142']
 		response = self.get_songs_detail(ids = ids)
 		print(response.json())
 
@@ -761,6 +1013,110 @@ class NetCloudLogin(object):
 
 	def _test_pretty_print_self_play_list(self):
 		self.pretty_print_self_play_list()
+
+	def _test_pretty_print_search_song(self):
+		keyword = "周杰伦"
+		self.pretty_print_search_song(search_song_name = keyword,offset = 0,limit = 30)
+
+	def _test_pretty_print_search_singer(self):
+		keyword = "陈奕迅"
+		self.pretty_print_search_singer(search_singer_name = keyword)
+
+	def _test_pretty_print_search_play_list(self):
+		keyword = "周杰伦"
+		self.pretty_print_play_list(keyword)
+
+	def _test_pretty_print_search_user(self):
+		keyword = "周杰伦"
+		self.pretty_print_user(keyword)
+
+	def _test_pretty_print_user_follows(self):
+		uid = 48548007
+		self.pretty_print_user_follows(uid)
+
+	def _test_pretty_print_user_fans(self):
+		uid = 44818930
+		self.pretty_print_user_fans(uid)
+
+	def _test_pretty_print_self_fans(self):
+		self.pretty_print_self_fans()
+
+	def _test_download_play_list_songs(self):
+		play_list_id = 82621571
+		self.download_play_list_songs(play_list_id)
+
+	def _test_get_download_urls_by_ids(self):
+		singer_url = "http://music.163.com/artist?id=9621"
+		ids_list = NetCloudCrawl("",1,"",1).get_singer_hot_songs_ids(singer_url)
+		print(self.get_download_urls_by_ids(ids_list))
+
+	def _test_get_songs_name_list_by_ids_list(self):
+		singer_url = "http://music.163.com/artist?id=7214"
+		ids_list = NetCloudCrawl("",1,"",1).get_singer_hot_songs_ids(singer_url)
+		print(self.get_songs_name_list_by_ids_list(ids_list))
+
+	def _test_get_singer_id_by_name(self):
+		singer_name = "周杰伦"
+		print(self.get_singer_id_by_name(singer_name))
+
+	def _test_download_singer_hot_songs_by_name(self):
+		singer_name = "蔡健雅"
+		self.download_singer_hot_songs_by_name(singer_name)
+
+	def _test_get_song_id_by_name(self):
+		song_name = "悲伤的秋千"
+		print(self.get_song_id_by_name(song_name))
+
+	def _test_get_lyrics_list_by_id(self):
+		song_id = 247835
+		print(self.get_lyrics_list_by_id(song_id))
+
+	def _test_get_lyrics_list_by_name(self):
+		song_name = "悲伤的秋千"
+		print(self.get_lyrics_list_by_name(song_name))
+
+	def _test_all(self):
+		# self._test_login()
+		# self._test_get_user_play_list()
+		# self._test_get_self_play_list()
+		# self._test_get_user_dj()
+		# self._test_get_self_dj()
+		# self._test_search()
+		# self._test_get_user_follows()
+		# self._test_get_self_follows()
+		# self._test_get_user_fans()
+		# self._test_get_self_fans()
+		# self._test_get_user_event()
+		# self._test_get_self_event()
+		# self._test_get_user_record()
+		# self._test_get_self_record()
+		# self._test_get_friends_event()
+		# self._test_get_top_playlist_highquality()
+		# self._test_get_play_list_detail()
+		# self._test_get_music_download_url()
+		# self._test_get_lyric()
+		# self._test_get_music_comments()
+		# self._test_get_album_comments()
+		# self._test_get_songs_detail()
+		# self._test_get_self_fm()
+		# self._test_pretty_print_self_info()
+		# self._test_pretty_print_user_play_list()
+		# self._test_pretty_print_self_play_list()
+		# self._test_pretty_print_search_song()
+		# self._test_pretty_print_search_singer()
+		# self._test_pretty_print_search_play_list()
+		# self._test_pretty_print_search_user()
+		# self._test_pretty_print_user_follows()
+		# self._test_pretty_print_user_fans()
+		# self._test_pretty_print_self_fans()
+		# self._test_download_play_list_songs()
+		# self._test_get_download_urls_by_ids()
+		# self._test_get_songs_name_list_by_ids_list()
+		# self._test_get_singer_id_by_name()
+		# self._test_download_singer_hot_songs_by_name()
+		# self._test_get_song_id_by_name()
+		# self._test_get_lyrics_list_by_id()
+		# self._test_get_lyrics_list_by_name()
 
 class Response(object):
     """
@@ -824,35 +1180,10 @@ class InvalidMethod(NetCloudLoginException):
 	pass
 	
 	
-# if __name__ == '__main__':
-# 	phone = 'xxxxxxxxxxx'
-# 	password = 'xxx'
-# 	email = None
-# 	rememberLogin = True
-# 	login = NetCloudLogin(phone = phone,password = password,email = email,rememberLogin = rememberLogin)
-# 	login._test_login()
-# 	login._test_get_user_play_list()
-# 	login._test_get_self_play_list()
-# 	login._test_get_user_dj()
-# 	login._test_get_self_dj()
-# 	login._test_search()
-# 	login._test_get_user_follows()
-# 	login._test_get_self_follows()
-# 	login._test_get_user_fans()
-# 	login._test_get_self_fans()
-# 	login._test_get_user_event()
-# 	login._test_get_self_event()
-# 	login._test_get_user_record()
-# 	login._test_get_self_record()
-# 	login._test_get_friends_event()
-# 	login._test_get_top_playlist_highquality()
-# 	login._test_get_play_list_detail()
-# 	login._test_get_music_download_url()
-# 	login._test_get_lyric()
-# 	login._test_get_music_comments()
-# 	login._test_get_album_comments()
-# 	login._test_get_songs_detail()
-# 	login._test_get_self_fm()
-# 	login._test_pretty_print_self_info()
-# 	login._test_pretty_print_user_play_list()
-# 	login._test_pretty_print_self_play_list()
+if __name__ == '__main__':
+	phone = '15527594439'
+	password = 'hcc199521'
+	email = None
+	rememberLogin = True
+	login = NetCloudLogin(phone = phone,password = password,email = email,rememberLogin = rememberLogin)
+	login._test_all()
