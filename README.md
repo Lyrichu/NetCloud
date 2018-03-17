@@ -81,6 +81,83 @@ if __name__ == '__main__':
 #### - generate_all_analyse_files(threads = 10) 生成全部的分析文件，包括评论关键字词云以及评论用户信息的可视化，默认线程数为10
 #### - _test 开头的为测试文件，请不要调用
 
+--------------------更新(2018/03/17,新增NetCloudLogin类)----------------------------
+#### - 初始化,NetCloudLogin(phone,password,email = None,rememberLogin = True) 初始化必要的参数有两个,phone表示传入登录的电话号码,password表示密码,也可以使用email登录,但是不保证一定可以登录成功,建议使用
+#### 电话号码登录,rememberLogin = True表示记住登录状态
+#### - login()函数,用于登录,返回一个Response object,这个Response 对象主要有:
+##### 1. content 属性,返回响应内容
+##### 2. heders属性,返回响应的headers
+##### 3. status_code属性,返回响应的状态码,比如200表示ok,404代表表示无法找到文件,400表示无效请求等等
+##### 4.ok属性,是一个布尔值,表示返回状态是否正常
+##### 5.error属性,返回的错误信息,如果没有异常,值为None
+##### 6.json()方法,解析返回的内容为json格式
+#### - get_user_play_list(uid,offset=0,limit=1000):获取用户的播放歌单,uid 为用户id,offset表示开始位置,limit表示限制条数(下面的offset和limit参数含义相同,不再赘述),返回Response对象,可以使用json()方法解析
+#### -  get_self_play_list(offset=0,limit=1000):获取自己的播放歌单,返回Response对象
+#### - get_user_dj(uid, offset=0, limit=30):获取用户的dj信息,返回Response对象
+#### - get_self_dj(offset=0, limit=30): 获取自己的dj,返回Response对象
+#### - search(keyword,type_=1, offset=0, limit=30):搜索歌手，歌曲,用户或者歌单,keyword表示搜索的关键字,type_表示搜索的类型,1:表示歌曲,100:表示歌手,1000表示歌单,1002表示用户,返回Response对象
+#### - get_user_follows(uid, offset=0, limit=30):获取用户关注列表,返回Response对象
+#### - get_self_follows(offset=0, limit=30):获取自身关注列表,返回Response对象
+#### - get_user_fans(uid, offset=0, limit=30):获取用户粉丝列表,返回Response对象
+#### - get_self_fans(offset=0, limit=30):获取自身粉丝列表,返回Response对象
+#### - get_user_event(uid):获取用户动态,uid为用户id,返回Response对象
+#### - get_self_event(): 获取自身动态
+#### - get_user_record(uid, type_=0):获取用户播放记录,uid为用户id,type_取值可以为0或者１,0表示全部记录,1表示最近一周的记录(这个需要首先登录)
+#### - get_self_record(type_ = 0):获取自身的播放记录
+#### - get_friends_event():获取关注的人的动态,返回Response对象
+#### - get_top_playlist_highquality(cat='全部', offset=0, limit=20):获取高质量的歌单,cat表示类别,可以传入'全部','欧美','华语'等,返回Response对象
+#### - get_play_list_detail(id, limit=20):获取歌单的详细信息,id表示歌单id,返回Response对象
+#### - get_music_download_url(ids=[]):通过id获取音乐的下载链接,传入的为歌曲的id列表,返回对应歌曲的下载链接Response对象
+#### - get_lyric(id):通过歌曲id获取歌曲歌词,返回Response对象
+#### - get_music_comments(id, offset=0, limit=20):通过歌曲id获取歌曲评论信息,返回Response对象
+#### - get_album_comments(id, offset=0, limit=20):通过专辑id获取专辑评论信息,返回Response对象
+#### - get_songs_detail(ids):通过歌曲id列表获取歌曲详细信息,ids表示歌曲id列表,返回Response对象
+#### - get_self_fm():获得自身的私人fm信息,返回Response对象
+#### **pretty_ 开头的系列函数可以以友好的形式向屏幕打印出你需要的信息**
+#### - pretty_print_self_info(): 打印自身信息
+#### - pretty_print_user_play_list(uid,offset = 0,limit = 1000):打印用户的歌单信息
+#### - pretty_print_self_play_list(offset = 0,limit = 1000): 打印自身的歌单信息
+#### - pretty_print_search_song(search_song_name,offset = 0,limit = 30):打印搜索歌曲的返回结果,search_song_name为搜索的歌曲关键字
+#### - pretty_print_search_singer(search_singer_name,offset = 0,limit = 30):打印搜索歌手的返回结果,search_singer_name为搜索的歌手关键字
+#### - pretty_print_search_play_list(keyword,offset = 0,limit = 30):打印搜索歌单的返回结果,keyword为搜索的歌单关键字
+#### - pretty_print_search_user(keyword,offset = 0,limit = 30):打印搜索用户的返回结果,keyword为搜索的用户关键字
+#### - pretty_print_user_follows(uid,offset = 0,limit = 30):打印用户关注列表
+#### - pretty_print_user_fans(uid,offset = 0,limit = 30):打印用户粉丝列表
+#### - pretty_print_self_fans(offset = 0,limit = 30):打印自身粉丝列表
+#### - get_download_urls_by_ids(ids_list):通过传入歌曲id列表得到歌曲下载链接列表,ids_list为歌曲id列表,返回歌曲下载链接列表
+#### - get_songs_name_list_by_ids_list(ids_list):通过歌曲id列表得到歌曲名字列表
+#### - download_play_list_songs(play_list_id,save_root_dir = "."):下载歌单中的歌曲到本地,play_list_id为传入歌单id,save_root_dir为歌曲保存的根目录,默认为当前目录
+#### - get_singer_id_by_name(singer_name):通过歌手名字得到歌手id,singer_name为歌手名字
+#### - get_song_id_by_name(song_name):通过歌曲名字得到歌曲id,song_name为歌曲名字
+#### - get_lyrics_list_by_id(song_id):通过歌曲id得到歌词列表
+#### - get_lyrics_list_by_name(song_name):通过歌曲名字得到歌词列表
+#### - download_singer_hot_songs_by_name(singer_name,save_root_dir = "."):通过传入歌手名字，下载歌手的热门歌曲到本地,singer_name为歌手名字,save_root_dir为歌曲保存的根目录,默认为当前目录
+#### _test 开头的为测试函数，请不要调用。
+#### 一个简单的使用例子如下:
+```python
+from NetCloud.NetCloudLogin import NetCloudLogin
+phone = 'xxxxxxxxxxx'
+password = 'xxx'
+email = None
+rememberLogin = True
+login = NetCloudLogin(phone = phone,password = password,email = email,rememberLogin = rememberLogin)
+login.pretty_print_self_info()
+得到结果为:
+Hello,Lyrichu!
+Here is your personal info:
+avatarUrl:http://p1.music.126.net/OkEDo-a_rHCC1zEDbg7dYg==/8003345140341032.jpg
+signature:热爱生活，热爱音乐！
+nickname:Lyrichu
+userName:0_mxxxxxxxxxxx@163.com
+province_id:420000
+birthday:1995-02-12
+description:
+gender:male
+userId:xxxxxxxx
+cellphone:xxxxxxxxxxx
+email:xxxxxxxxxxx@163.com
+```
+
 ### 4. 一些可能会出现的问题
 #### 4.1 在pip install NetCloud 的过程中，如果是在Windows下，wordcloud 以及 pycrypto 模块也许会安装失败，此时可以去[python非官方第三方库下载](https://www.lfd.uci.edu/~gohlke/pythonlibs/)下载对应pyhton版本的预编译wheel文件，然后手动pip安装即可。另外,numpy 需要 numpy+mkl形式的库，也可以在这个网站下载。
 #### 4.2 由于我没有测试完全，而且代码水平有限，因此代码肯定存在一些意想不到的bug，如果您对这个模块感兴趣，在使用的过程中出现任何问题或者有任何建议，欢迎给我留言，当然最好的方式是去github提issue,地址是[NetCloud](https://www.github.com/Lyrichu/NetCloud)，同时欢迎star 和fork，谢谢支持。
