@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name="NetCloud",
-    version="0.0.3",
+    version="0.0.4",
     description='''Netease Cloud Music comments spider,you can use it to crawl all comments of 
 a song,and also you can crawl the users info,download the music,login to get yourself and other
 people's info and activities,and almost anything about NetEase Cloud Music! With all this content,you can

@@ -926,7 +926,7 @@ class NetCloudLogin(object):
 		print(response.json())
 
 	def _test_get_self_follows(self):
-		response = self.get_me_follows()
+		response = self.get_self_follows()
 		print(response.json())
 
 	def _test_get_user_fans(self):
@@ -989,7 +989,7 @@ class NetCloudLogin(object):
 		print(response.json())
 
 	def _test_get_album_comments(self):
-		album_id = 2975328
+		album_id = 28519
 		offset = 0
 		limit = 20
 		response = self.get_album_comments(id = album_id,offset = offset,limit = limit)
@@ -1024,11 +1024,11 @@ class NetCloudLogin(object):
 
 	def _test_pretty_print_search_play_list(self):
 		keyword = "周杰伦"
-		self.pretty_print_play_list(keyword)
+		self.pretty_print_search_play_list(keyword)
 
 	def _test_pretty_print_search_user(self):
 		keyword = "周杰伦"
-		self.pretty_print_user(keyword)
+		self.pretty_print_search_user(keyword)
 
 	def _test_pretty_print_user_follows(self):
 		uid = 48548007
@@ -1076,90 +1076,93 @@ class NetCloudLogin(object):
 		print(self.get_lyrics_list_by_name(song_name))
 
 	def _test_all(self):
-		# self._test_login()
-		# self._test_get_user_play_list()
-		# self._test_get_self_play_list()
-		# self._test_get_user_dj()
-		# self._test_get_self_dj()
-		# self._test_search()
-		# self._test_get_user_follows()
-		# self._test_get_self_follows()
-		# self._test_get_user_fans()
-		# self._test_get_self_fans()
-		# self._test_get_user_event()
-		# self._test_get_self_event()
-		# self._test_get_user_record()
-		# self._test_get_self_record()
-		# self._test_get_friends_event()
-		# self._test_get_top_playlist_highquality()
-		# self._test_get_play_list_detail()
-		# self._test_get_music_download_url()
-		# self._test_get_lyric()
-		# self._test_get_music_comments()
-		# self._test_get_album_comments()
-		# self._test_get_songs_detail()
-		# self._test_get_self_fm()
-		# self._test_pretty_print_self_info()
-		# self._test_pretty_print_user_play_list()
-		# self._test_pretty_print_self_play_list()
-		# self._test_pretty_print_search_song()
-		# self._test_pretty_print_search_singer()
-		# self._test_pretty_print_search_play_list()
-		# self._test_pretty_print_search_user()
-		# self._test_pretty_print_user_follows()
-		# self._test_pretty_print_user_fans()
-		# self._test_pretty_print_self_fans()
-		# self._test_download_play_list_songs()
-		# self._test_get_download_urls_by_ids()
-		# self._test_get_songs_name_list_by_ids_list()
-		# self._test_get_singer_id_by_name()
-		# self._test_download_singer_hot_songs_by_name()
-		# self._test_get_song_id_by_name()
-		# self._test_get_lyrics_list_by_id()
-		# self._test_get_lyrics_list_by_name()
+		self._test_login()
+		self._test_get_user_play_list()
+		self._test_get_self_play_list()
+		self._test_get_user_dj()
+		self._test_get_self_dj()
+		self._test_search()
+		self._test_get_user_follows()
+		self._test_get_self_follows()
+		self._test_get_user_fans()
+		self._test_get_self_fans()
+		self._test_get_user_event()
+		self._test_get_self_event()
+		self._test_get_user_record()
+		self._test_get_self_record()
+		self._test_get_friends_event()
+		self._test_get_top_playlist_highquality()
+		self._test_get_play_list_detail()
+		self._test_get_music_download_url()
+		self._test_get_lyric()
+		self._test_get_music_comments()
+		self._test_get_album_comments()
+		self._test_get_songs_detail()
+		self._test_get_self_fm()
+		self._test_pretty_print_self_info()
+		self._test_pretty_print_user_play_list()
+		self._test_pretty_print_self_play_list()
+		self._test_pretty_print_search_song()
+		self._test_pretty_print_search_singer()
+		self._test_pretty_print_search_play_list()
+		self._test_pretty_print_search_user()
+		self._test_pretty_print_user_follows()
+		self._test_pretty_print_user_fans()
+		self._test_pretty_print_self_fans()
+		self._test_download_play_list_songs()
+		self._test_get_download_urls_by_ids()
+		self._test_get_songs_name_list_by_ids_list()
+		self._test_get_singer_id_by_name()
+		self._test_download_singer_hot_songs_by_name()
+		self._test_get_song_id_by_name()
+		self._test_get_lyrics_list_by_id()
+		self._test_get_lyrics_list_by_name()
 
 class Response(object):
-    """
-    The :class:`Response` object. All :class:`NetCloudLogin` objects contain a 
-    :class:`NetCloudLogin.response <response>` attribute.
-    """
+	"""
+	The :class:`Response` object. All :class:`NetCloudLogin` objects contain a 
+	:class:`NetCloudLogin.response <response>` attribute.
+	"""
 
-    def __init__(self):
-        self.content = None
-        self.headers = None
-        self.status_code = None
-        self.ok = False
-        self.error = None
+	def __init__(self):
+		self.content = None
+		self.headers = None
+		self.status_code = None
+		self.ok = False
+		self.error = None
 
-    def __repr__(self):
-        return '<Response [%s]>' % (self.status_code)
+	def __repr__(self):
+		return '<Response [%s]>' % (self.status_code)
 
-    def raise_for_status(self):
-        if self.error:
-            raise self.error
+	def raise_for_status(self):
+		if self.error:
+			raise self.error
 
-    def get_encoding_from_headers(headers):
-	    """
-	    Returns encodings from given HTTP Header Dict.
-	    :param headers: dictionary to extract encoding from.
-	    """
-	    content_type = headers.get('content-type')
-	    if not content_type:
-	        return None
-	    content_type, params = cgi.parse_header(content_type)
-	    if 'charset' in params:
-	        return params['charset'].strip("'\"")
-	    if 'text' in content_type:
-	    	return 'ISO-8859-1'
+	def get_encoding_from_headers(headers):
+		"""
+		Returns encodings from given HTTP Header Dict.
+		:param headers: dictionary to extract encoding from.
+		"""
+		content_type = headers.get('content-type')
+		if not content_type:
+			return None
+		content_type, params = cgi.parse_header(content_type)
+		if 'charset' in params:
+			return params['charset'].strip("'\"")
+		if 'text' in content_type:
+			return 'ISO-8859-1'
 
 
-    def json(self):
-        """Returns the json-encoded content of a response, if any."""
-        if not self.headers and len(self.content) > 3:
-            encoding = self.get_encoding_from_headers(self.headers)
-            if encoding is not None:
-                return json.loads(self.content.decode(encoding))
-        return json.loads(self.content.decode("utf-8"))
+	def json(self):
+		"""Returns the json-encoded content of a response, if any."""
+		if not self.headers and len(self.content) > 3:
+			encoding = self.get_encoding_from_headers(self.headers)
+			if encoding is not None:
+				try:
+					return json.loads(self.content.decode(encoding))
+				except:
+					return json.loads(self.content.decode('utf-8'))
+		return json.loads(self.content.decode("utf-8"))
 
 
 
@@ -1167,23 +1170,23 @@ class Response(object):
 
 
 class NetCloudLoginException(Exception):
-    """ Exception for NetCloudLogin"""
-    pass
+	""" Exception for NetCloudLogin"""
+	pass
 
 
 class ParamsError(NetCloudLoginException):
-    """Exception for parameters error """
-    pass
+	"""Exception for parameters error """
+	pass
 
 class InvalidMethod(NetCloudLoginException):
 	""" Exception for invalid method calling"""
 	pass
 	
 	
-if __name__ == '__main__':
-	phone = '15527594439'
-	password = 'hcc199521'
-	email = None
-	rememberLogin = True
-	login = NetCloudLogin(phone = phone,password = password,email = email,rememberLogin = rememberLogin)
-	login._test_all()
+# if __name__ == '__main__':
+# 	phone = 'xxxxxxxxxxx'
+# 	password = 'xxx'
+# 	email = None
+# 	rememberLogin = True
+# 	login = NetCloudLogin(phone = phone,password = password,email = email,rememberLogin = rememberLogin)
+# 	login._test_all()
