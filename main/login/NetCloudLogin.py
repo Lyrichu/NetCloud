@@ -7,78 +7,26 @@
 # @Version : 0.1
 # @Description :
 '''
-module for NetNease Music login,including getting self info,
-user music list etc.
+网易云音乐和登录相关的功能实现
 reference:https://github.com/xiyouMc/ncmbot
 '''
-try:
-	from NetCloudCrawler import NetCloudCrawl
-	from NetCloudAnalyse import NetCloudAnalyse
-except ImportError:
-	from .NetCloudCrawler import NetCloudCrawl
-	from .NetCloudAnalyse import NetCloudAnalyse
+
+from main.crawler.NetCloudCrawler import NetCloudCrawl
 import requests 
 import hashlib
 import json
 import os
-import re 
-import random 
-import urllib 
-from Crypto.Cipher import AES
-import base64 
-import traceback 
-import codecs 
+import re
+import urllib
+import traceback
+
+from main.util import Constants, Helper
+
 
 class NetCloudLogin(object):
 	"""
-	module for logging
+	用于登录的模块
 	"""
-	_METHODS = {
-        # logging using cellphone
-        'LOGIN': '/weapi/login/cellphone?csrf_token=',
-        # logging using email
-        'EMAIL_LOGIN': '/weapi/login?csrf_token=',
-        # get user info
-        'USER_INFO': '/weapi/subcount',
-        # get user play list(star list),no need logging
-        'USER_PLAY_LIST': '/weapi/user/playlist',
-        # get user dj
-        'USER_DJ': '/weapi/dj/program/%s',
-        # get user follows
-        'USER_FOLLOWS': '/weapi/user/getfollows/%s',
-        # get user fans
-        'USER_FOLLOWEDS': '/weapi/user/getfolloweds/',
-        # get user event
-        'USER_EVENT': '/weapi/event/get/%s',
-        # get user play record
-        'USER_RECORD': '/weapi/v1/play/record',
-        # get user different events(including shared photos,videos,etc)
-        'EVENT': '/weapi/v1/event/get',
-        # get user high quality playlist
-        'TOP_PLAYLIST_HIGHQUALITY': '/weapi/playlist/highquality/list',
-        # get all play list by play list id
-        'PLAY_LIST_DETAIL': '/weapi/v3/playlist/detail',
-        # get music url by music id
-        'MUSIC_URL': '/weapi/song/enhance/player/url',
-        # get music lyric by music id
-        'LYRIC': '/api/song/lyric?os=osx&id=%s&lv=-1&kv=-1&tv=-1',
-        # get music all comments
-        'MUSIC_COMMENT': '/weapi/v1/resource/comments/R_SO_4_%s/?csrf_token=',
-        # get play list by keywords
-        'SEARCH': '/api/search/get/',
-        # get album comments
-        'ALBUM_COMMENT': '/weapi/v1/resource/comments/R_AL_3_%s/?csrf_token=',
-        # show likes on comment
-        'LIKE_COMMENT': '/weapi/v1/comment/%s',
-        # get music detail by music id
-        'SONG_DETAIL': '/weapi/v3/song/detail',
-        # get album content
-        'ALBUM': '/weapi/v1/album/%s',
-        # personal fm(need loggin)
-        'PERSONAL_FM': '/weapi/v1/radio/get'
-    }
-
-	_HOST = 'http://music.163.com'
 
 	def __init__(self,phone,password,email = None,rememberLogin = True):
 		self.method = None
@@ -90,54 +38,15 @@ class NetCloudLogin(object):
 		self.password = password
 		self.email = email
 		self.rememberLogin = rememberLogin
-		# encrypt params
-		self.modulus = '00e0b509f6259df8642dbc35662901477df22677ec152b5ff68ace615bb7b725152b3ab17a876aea8a5aa76d2e417629ec4ee341f56135fccf695280104e0312ecbda92557c93870114af6c9d05c4f7f0c3685b7a46bee255932575cce10b424d813cfe4875d3e82047b97ddef52741d546b8e289dc6935b3ece0462db0a22b8e7'
-		self.nonce = '0CoJUm6Qyw8W8jud'
-		self.pubKey = '010001'
 
 	def __repr__(self):
-		return '<NCloudBot [%s]>' % (self.method)
+		return '<%s [%s]>' % (Constants.PROJECT_NAME,self.method)
 
 	def __setattr__(self, name, value):
 		if (name == 'method') and (value):
-			if value not in self._METHODS.keys():
+			if value not in Constants.REQUEST_METHODS.keys():
 				raise InvalidMethod()
 		object.__setattr__(self, name, value)
-
-	def createSecretKey(self,size):
-		try:
-			return (''.join(map(lambda xx: (hex(ord(xx))[2:]), os.urandom(size))))[0:16]
-		except:
-			return (''.join(map(lambda xx: (hex(xx)[2:]), os.urandom(size))))[0:16]
-
-	def aesEncrypt(self,text, secKey):
-	    pad = 16 - len(text) % 16
-	    if isinstance(text,bytes): # convert text to str
-	        text = text.decode("utf-8")
-	    text = text + pad * chr(pad)
-	    encryptor = AES.new(secKey, 2, '0102030405060708')
-	    ciphertext = encryptor.encrypt(text)
-	    ciphertext = base64.b64encode(ciphertext)
-	    return ciphertext
-
-	def rsaEncrypt(self,text):
-	    text = text[::-1]
-	    try:
-	    	rs = int(text.encode('hex'), 16) ** int(self.pubKey, 16) % int(self.modulus, 16)
-	    except:
-	    	rs = int(codecs.encode(bytes(text,'utf-8'),'hex_codec'), 16) ** int(self.pubKey, 16) % int(self.modulus, 16)
-	    return format(rs, 'x').zfill(256)
-
-	def encrypted_request(self,text):
-	    text = json.dumps(text)
-	    secKey = self.createSecretKey(16)
-	    encText = self.aesEncrypt(self.aesEncrypt(text, self.nonce), secKey)
-	    encSecKey = self.rsaEncrypt(secKey)
-	    data = {
-	        'params': encText,
-	        'encSecKey': encSecKey
-	    }
-	    return data
 
 	def _get_webapi_requests(self):
 		"""
@@ -165,7 +74,7 @@ class NetCloudLogin(object):
 	def _get_requests(self):
 		headers = {
 		    'Referer':
-		    self._HOST,
+		    Constants.MUSIC163_BASE_URL,
 		    'Cookie':
 		    'appver=2.0.2;',
 		    'Content-Type':
@@ -178,63 +87,63 @@ class NetCloudLogin(object):
 
 
 	def _build_response(self, resp):
-	    """Build internal Response object from given response."""
-	    self.response.content = resp.content
-	    self.response.status_code = resp.status_code
-	    self.response.headers = resp.headers
+		"""Build internal Response object from given response."""
+		self.response.content = resp.content
+		self.response.status_code = resp.status_code
+		self.response.headers = resp.headers
 
 	def send(self):
 		"""Send the request."""
 		if self.method is None:
-		    raise ParamsError()
+			raise ParamsError()
 		try:
-		    if self.method == 'SEARCH':
-		        req = self._get_requests()
-		        _url = self._HOST + self._METHODS[self.method]
-		        resp = req.post(_url, data=self.data)
-		        self._build_response(resp)
-		        self.response.ok = True
-		    else:
-		        if isinstance(self.data, dict):
-		            data = self.encrypted_request(self.data)
-		        req = self._get_webapi_requests()
-		        _url = self._HOST + self._METHODS[self.method]
-		        if self.method in ('USER_DJ', 'USER_FOLLOWS', 'USER_EVENT'):
-		            _url = _url % self.params['uid']
-		        if self.method in ('LYRIC','MUSIC_COMMENT'):
-		            _url = _url % self.params['id']
+			if self.method == 'SEARCH':
+				req = self._get_requests()
+				_url = Constants.MUSIC163_BASE_URL + Constants.REQUEST_METHODS[self.method]
+				resp = req.post(_url, data=self.data)
+				self._build_response(resp)
+				self.response.ok = True
+			else:
+				if isinstance(self.data, dict):
+					data = Helper.encrypted_request(self.data)
+				req = self._get_webapi_requests()
+				_url = Constants.MUSIC163_BASE_URL + Constants.REQUEST_METHODS[self.method]
+				if self.method in ('USER_DJ', 'USER_FOLLOWS', 'USER_EVENT'):
+					_url = _url % self.params['uid']
+				if self.method in ('LYRIC','MUSIC_COMMENT'):
+					_url = _url % self.params['id']
 
-		        if self.method in ('LYRIC'):
-		            resp = req.get(_url)
-		        else:
-		            resp = req.post(_url, data=data)
-		        self._build_response(resp)
-		        self.response.ok = True
+				if self.method in ('LYRIC'):
+					resp = req.get(_url)
+				else:
+					resp = req.post(_url, data=data)
+				self._build_response(resp)
+				self.response.ok = True
 		except Exception as why:
-		    traceback.print_exc()
-		    print('Requests Exception', why)
-		    self.response.error = why
+			traceback.print_exc()
+			print('Requests Exception', why)
+			self.response.error = why
 
 	def login(self):
-	    """ 
-	    interface for logging，return :class:'Response' object
-	    """
-	    if (self.phone is None) and (self.email is None):
-	        raise ParamsError()
-	    if self.password is None:
-	        raise ParamsError()
-	    md5 = hashlib.md5()
-	    md5.update(self.password.encode("utf-8"))
-	    password = md5.hexdigest()
-	    self.data = {'password': password, 'rememberLogin': self.rememberLogin}
-	    if self.phone is not None:
-	        self.data['phone'] = self.phone
-	        self.method = 'LOGIN'
-	    else:
-	        self.data['username'] = self.email
-	        self.method = 'EMAIL_LOGIN'
-	    self.send()
-	    return self.response
+		"""
+		登录接口,return :class:'Response' object
+		"""
+		if (self.phone is None) and (self.email is None):
+			raise ParamsError()
+		if self.password is None:
+			raise ParamsError()
+		md5 = hashlib.md5()
+		md5.update(self.password.encode("utf-8"))
+		password = md5.hexdigest()
+		self.data = {'password': password, 'rememberLogin': self.rememberLogin}
+		if self.phone is not None:
+			self.data['phone'] = self.phone
+			self.method = 'LOGIN'
+		else:
+			self.data['username'] = self.email
+			self.method = 'EMAIL_LOGIN'
+		self.send()
+		return self.response
 
 	def get_user_play_list(self,uid,offset=0,limit=1000):
 		"""
@@ -244,7 +153,7 @@ class NetCloudLogin(object):
 		:param limit: (optional) the limited lines count,defualt is 1000
 		"""
 		if uid is None:
-		    raise ParamsError()
+			raise ParamsError()
 		self.method = 'USER_PLAY_LIST'
 		self.data = {'offset': offset, 'uid': uid, 'limit': limit, 'csrf_token': ''}
 		self.send()
@@ -266,7 +175,7 @@ class NetCloudLogin(object):
 		:param limit: (optional) the limited lines count,defualt is 30
 		"""
 		if uid is None:
-		    raise ParamsError()
+			raise ParamsError()
 		self.method = 'USER_DJ'
 		self.data = {'offset': offset, 'limit': limit, "csrf_token": ""}
 		self.params = {'uid': uid}
@@ -290,7 +199,7 @@ class NetCloudLogin(object):
 		:param limit: (optional) the limited lines count,defualt is 30
 		"""
 		if keyword is None:
-		    raise ParamsError()
+			raise ParamsError()
 		self.method = 'SEARCH'
 		self.data = {
 		    's': keyword,
@@ -309,7 +218,7 @@ class NetCloudLogin(object):
 		:param limit: (optional) the limited lines count,defualt is 30
 		"""
 		if uid is None:
-		    raise ParamsError()
+			raise ParamsError()
 		self.method = 'USER_FOLLOWS'
 		self.params = {'uid': uid}
 		self.data = {'offset': offset, 'limit': limit, 'order': True}
@@ -333,7 +242,7 @@ class NetCloudLogin(object):
 		:param limit: (optional) the limited lines count,defualt is 30
 		"""
 		if uid is None:
-		    raise ParamsError()
+			raise ParamsError()
 		self.method = 'USER_FOLLOWEDS'
 		self.data = {
 		    'userId': uid,
@@ -358,7 +267,7 @@ class NetCloudLogin(object):
 		:param uid: user id
 		"""
 		if uid is None:
-		    raise ParamsError()
+			raise ParamsError()
 		self.method = 'USER_EVENT'
 		self.params = {'uid': uid}
 		self.data = {'time': -1, 'getcounts': True, "csrf_token": ""}
@@ -377,7 +286,7 @@ class NetCloudLogin(object):
 		:param type_: (optional) data type，0：all datas，1： week data
 		"""
 		if uid is None:
-		    raise ParamsError()
+			raise ParamsError()
 		self.method = 'USER_RECORD'
 		self.data = {'type': type_, 'uid': uid, "csrf_token": ""}
 		self.send()
@@ -425,7 +334,7 @@ class NetCloudLogin(object):
 		:param limit: (optional) limited lines count
 		"""
 		if id is None:
-		    raise ParamsError()
+			raise ParamsError()
 		self.method = 'PLAY_LIST_DETAIL'
 		self.data = {'id': id, 'limit': limit, "csrf_token": ""}
 		self.send()
@@ -439,7 +348,7 @@ class NetCloudLogin(object):
 		:param ids: music ids list 
 		"""
 		if not isinstance(ids, list):
-		    raise ParamsError()
+			raise ParamsError()
 		self.method = 'MUSIC_URL'
 		self.data = {'ids': ids, 'br': 999000, "csrf_token": ""}
 		self.send()
@@ -451,7 +360,7 @@ class NetCloudLogin(object):
 		:param id: music id
 		"""
 		if id is None:
-		    raise ParamsError()
+			raise ParamsError()
 		self.method = 'LYRIC'
 		self.params = {'id': id}
 		self.send()
@@ -466,7 +375,7 @@ class NetCloudLogin(object):
 		:param limit: (optional) the limited lines count
 		"""
 		if id is None:
-		    raise ParamsError()
+			raise ParamsError()
 		self.method = 'MUSIC_COMMENT'
 		self.params = {'id': id}
 		self.data = {'offset': offset, 'limit': limit, 'rid': id,"csrf_token": ""}
@@ -479,7 +388,7 @@ class NetCloudLogin(object):
 		get album comments
 		'''
 		if id is None:
-		    raise ParamsError()
+			raise ParamsError()
 		self.method = 'ALBUM_COMMENT'
 		self.params = {'id': id}
 		self.data = {'offset': offset, 'limit': limit, 'rid': id, "csrf_token": ""}
@@ -494,10 +403,10 @@ class NetCloudLogin(object):
 		:param ids: music ids list
 		"""
 		if not isinstance(ids, list):
-		    raise ParamsError()
+			raise ParamsError()
 		c = []
 		for id in ids:
-		    c.append({'id': id})
+			c.append({'id': id})
 		self.method = 'SONG_DETAIL'
 		self.data = {'c': json.dumps(c), 'ids': c, "csrf_token": ""}
 		self.send()
@@ -525,8 +434,7 @@ class NetCloudLogin(object):
 		if birthday_no < 0:
 			birthday = "unknown"
 		else:
-			from_timestamp_to_date = NetCloudAnalyse(song_name = "",singer_name = "").from_timestamp_to_date
-			birthday = from_timestamp_to_date(time_stamp = birthday_no*0.001,format = "%Y-%m-%d")
+			birthday = Helper.from_timestamp_to_date(time_stamp = birthday_no*0.001,format = "%Y-%m-%d")
 		description = info_dict['profile']['description']
 		if info_dict['profile']['gender'] == 1:
 			gender = 'male'
@@ -561,12 +469,11 @@ class NetCloudLogin(object):
 		play_list = self.get_user_play_list(uid,offset,limit).json()
 		num = len(play_list['playlist'])
 		print("UserId {UserId} has total {total} play list!".format(UserId = uid,total = num))
-		from_timestamp_to_date = NetCloudAnalyse(song_name = "",singer_name = "").from_timestamp_to_date
 		for i in range(num):
 			playlist_dict = play_list['playlist'][i]
 			print("-"*20," play list {index} ".format(index = i+1),"-"*20)
-			createTime = from_timestamp_to_date(playlist_dict['createTime']*0.001,format = "%Y-%m-%d")
-			updateTime = from_timestamp_to_date(playlist_dict['updateTime']*0.001,format = "%Y-%m-%d")
+			createTime = Helper.from_timestamp_to_date(playlist_dict['createTime']*0.001,format = "%Y-%m-%d")
+			updateTime = Helper.from_timestamp_to_date(playlist_dict['updateTime']*0.001,format = "%Y-%m-%d")
 			tags_str = ",".join(playlist_dict['tags'])
 			description = playlist_dict['description']
 			coverImgUrl = playlist_dict['coverImgUrl']
@@ -590,7 +497,7 @@ class NetCloudLogin(object):
 			if creator_user_birthday_no < 0:
 				creator_user_birthday = "unknown"
 			else:
-				creator_user_birthday = from_timestamp_to_date(creator_user_birthday_no*0.001,format = "%Y-%m-%d")
+				creator_user_birthday = Helper.from_timestamp_to_date(creator_user_birthday_no*0.001,format = "%Y-%m-%d")
 			artists = playlist_dict['artists']
 			playlist_name = playlist_dict['name']
 			highQuality = playlist_dict['highQuality']
@@ -656,7 +563,7 @@ class NetCloudLogin(object):
 			for artist in content['artists']:
 				print(artist['name'],end = " ")
 			print("\nalbum:",content['album']['name'])
-			print("album publish time:",NetCloudAnalyse("","").from_timestamp_to_date(content['album']['publishTime']*0.001,format = "%Y-%m-%d"))
+			print("album publish time:",Helper.from_timestamp_to_date(content['album']['publishTime']*0.001,format = "%Y-%m-%d"))
 			print("song duration:",content['duration']//60000,"m",(content['duration']//1000 % 60),"s")
 			print("song id:",content["id"])
 			print("singer id:",end = "")
@@ -712,7 +619,6 @@ class NetCloudLogin(object):
 		num = len(res['result']["userprofiles"])
 		print("Your search user keyword is:",keyword)
 		print("Here is your search result(%d count):" % num)
-		from_timestamp_to_date = NetCloudAnalyse("","").from_timestamp_to_date 
 		for index,content in enumerate(res['result']['userprofiles'],1):
 			print("-"*20,"  search result %d  " % index,"-"*20)
 			print("user name:",content['nickname'])
@@ -723,7 +629,7 @@ class NetCloudLogin(object):
 			print("province id:",content["province"])
 			print("city id:",content["city"])
 			print("gender:","male" if content["gender"] == 1 else "female")
-			print("birthday:",from_timestamp_to_date(content["birthday"]*0.001,"%Y-%m-%d"))
+			print("birthday:",Helper.from_timestamp_to_date(content["birthday"]*0.001,"%Y-%m-%d"))
 			print("avatar url:",content["avatarUrl"])
 			print("background image url:",content["backgroundUrl"])
 
@@ -753,7 +659,6 @@ class NetCloudLogin(object):
 		res = self.get_user_fans(uid,offset = offset,limit = limit).json()
 		num = len(res['followeds'])
 		print("User id %d 's fans list is(count %d):" %(uid,num))
-		from_timestamp_to_date = NetCloudAnalyse("","").from_timestamp_to_date
 		for index,content in enumerate(res['followeds'],1):
 			print("-"*20,"  fans %d  " %index,"-"*20)
 			print("user name:",content["nickname"])
@@ -765,7 +670,7 @@ class NetCloudLogin(object):
 			print("event count:",content["eventCount"])
 			print("fans count:",content["followeds"])
 			print("follows count:",content["follows"])
-			print("follow time:",from_timestamp_to_date(content["time"]*0.001,"%Y-%m-%d"))
+			print("follow time:",Helper.from_timestamp_to_date(content["time"]*0.001,"%Y-%m-%d"))
 
 	def pretty_print_self_fans(self,offset = 0,limit = 30):
 		'''
@@ -774,7 +679,6 @@ class NetCloudLogin(object):
 		res = self.get_self_fans(offset = offset,limit = limit).json()
 		num = len(res['followeds'])
 		print("My fans list is(count %d):" %num)
-		from_timestamp_to_date = NetCloudAnalyse("","").from_timestamp_to_date
 		for index,content in enumerate(res['followeds'],1):
 			print("-"*20,"  fans %d  " %index,"-"*20)
 			print("user name:",content["nickname"])
@@ -786,7 +690,7 @@ class NetCloudLogin(object):
 			print("event count:",content["eventCount"])
 			print("fans count:",content["followeds"])
 			print("follows count:",content["follows"])
-			print("follow time:",from_timestamp_to_date(content["time"]*0.001,"%Y-%m-%d"))
+			print("follow time:",Helper.from_timestamp_to_date(content["time"]*0.001,"%Y-%m-%d"))
 
 	def get_download_urls_by_ids(self,ids_list):
 		urls_list = []
@@ -885,238 +789,7 @@ class NetCloudLogin(object):
 				print("Successfully download %d/%d(%s)!" %(index,total,songs_name_list[index-1])) 
 			except Exception:
 				print("Fail download %d/%d(%s)!" %(index,total,songs_name_list[index-1]))
-				continue 
-
-
-	def _test_login(self):
-		response = self.login()
-		print(response.json())
-
-	def _test_get_user_play_list(self):
-		uid = 103413749
-		response = self.get_user_play_list(uid)
-		print(response.json())
-
-	def _test_get_self_play_list(self):
-		response = self.get_self_play_list()
-		print(response.json())
-
-	def _test_get_user_dj(self):
-		uid = 1186346
-		response = self.get_user_dj(uid)
-		print(response.json())
-
-	def _test_get_self_dj(self):
-		response = self.get_self_dj()
-		print(response.json())
-
-	def _test_search(self):
-		keyword = "周杰伦"
-		type_ = 1002
-		offset = 0
-		limit = 30
-		response = self.search(keyword = keyword,type_ = type_,offset = offset,limit = limit)
-		print(response.json())
-
-	def _test_get_user_follows(self):
-		uid = 103413749
-		offset = 0
-		limit = 50
-		response = self.get_user_follows(uid = uid,offset = offset,limit = limit)
-		print(response.json())
-
-	def _test_get_self_follows(self):
-		response = self.get_self_follows()
-		print(response.json())
-
-	def _test_get_user_fans(self):
-		uid = 103413749
-		response = self.get_user_fans(uid = uid)
-		print(response.json())
-
-	def _test_get_self_fans(self):
-		response = self.get_self_fans()
-		print(response.json())
-
-	def _test_get_user_event(self):
-		uid = 82133317
-		response = self.get_user_event(uid = uid)
-		print(response.json())
-
-	def _test_get_self_event(self):
-		response = self.get_self_event()
-		print(response.json())
-
-	def _test_get_user_record(self):
-		uid = 82133317
-		type_ = 0 # all datas
-		response = self.get_user_record(uid = uid,type_ = type_)
-		print(response.json())
-
-	def _test_get_self_record(self):
-		response = self.get_self_record()
-		print(response.json())
-
-	def _test_get_friends_event(self):
-		response = self.get_friends_event()
-		print(response.json())
-
-	def _test_get_top_playlist_highquality(self):
-		response = self.get_top_playlist_highquality()
-		print(response.json())
-
-	def _test_get_play_list_detail(self):
-		play_list_id = 92259156
-		limit = 100
-		response = self.get_play_list_detail(id = play_list_id,limit = limit)
-		print(response.json())
-
-	def _test_get_music_download_url(self):
-		ids = [526464293]
-		response = self.get_music_download_url(ids = ids)
-		print(response.json())
-
-	def _test_get_lyric(self):
-		music_id = 526464293
-		response = self.get_lyric(id = music_id)
-		print(response.json())
-
-	def _test_get_music_comments(self):
-		music_id = 526464293
-		offset = 0
-		limit = 100
-		response = self.get_music_comments(id = music_id,offset = offset,limit = limit)
-		print(response.json())
-
-	def _test_get_album_comments(self):
-		album_id = 28519
-		offset = 0
-		limit = 20
-		response = self.get_album_comments(id = album_id,offset = offset,limit = limit)
-		print(response.json())
-
-	def _test_get_songs_detail(self):
-		ids = ['208902', '27747330','529747142']
-		response = self.get_songs_detail(ids = ids)
-		print(response.json())
-
-	def _test_get_self_fm(self):
-		response = self.get_self_fm()
-		print(response.json())
-
-	def _test_pretty_print_self_info(self):
-		self.pretty_print_self_info()
-
-	def _test_pretty_print_user_play_list(self):
-		uid = 103413749
-		self.pretty_print_user_play_list(uid = uid)
-
-	def _test_pretty_print_self_play_list(self):
-		self.pretty_print_self_play_list()
-
-	def _test_pretty_print_search_song(self):
-		keyword = "周杰伦"
-		self.pretty_print_search_song(search_song_name = keyword,offset = 0,limit = 30)
-
-	def _test_pretty_print_search_singer(self):
-		keyword = "陈奕迅"
-		self.pretty_print_search_singer(search_singer_name = keyword)
-
-	def _test_pretty_print_search_play_list(self):
-		keyword = "周杰伦"
-		self.pretty_print_search_play_list(keyword)
-
-	def _test_pretty_print_search_user(self):
-		keyword = "周杰伦"
-		self.pretty_print_search_user(keyword)
-
-	def _test_pretty_print_user_follows(self):
-		uid = 48548007
-		self.pretty_print_user_follows(uid)
-
-	def _test_pretty_print_user_fans(self):
-		uid = 44818930
-		self.pretty_print_user_fans(uid)
-
-	def _test_pretty_print_self_fans(self):
-		self.pretty_print_self_fans()
-
-	def _test_download_play_list_songs(self):
-		play_list_id = 82621571
-		self.download_play_list_songs(play_list_id)
-
-	def _test_get_download_urls_by_ids(self):
-		singer_url = "http://music.163.com/artist?id=9621"
-		ids_list = NetCloudCrawl("",1,"",1).get_singer_hot_songs_ids(singer_url)
-		print(self.get_download_urls_by_ids(ids_list))
-
-	def _test_get_songs_name_list_by_ids_list(self):
-		singer_url = "http://music.163.com/artist?id=7214"
-		ids_list = NetCloudCrawl("",1,"",1).get_singer_hot_songs_ids(singer_url)
-		print(self.get_songs_name_list_by_ids_list(ids_list))
-
-	def _test_get_singer_id_by_name(self):
-		singer_name = "周杰伦"
-		print(self.get_singer_id_by_name(singer_name))
-
-	def _test_download_singer_hot_songs_by_name(self):
-		singer_name = "蔡健雅"
-		self.download_singer_hot_songs_by_name(singer_name)
-
-	def _test_get_song_id_by_name(self):
-		song_name = "悲伤的秋千"
-		print(self.get_song_id_by_name(song_name))
-
-	def _test_get_lyrics_list_by_id(self):
-		song_id = 247835
-		print(self.get_lyrics_list_by_id(song_id))
-
-	def _test_get_lyrics_list_by_name(self):
-		song_name = "悲伤的秋千"
-		print(self.get_lyrics_list_by_name(song_name))
-
-	def _test_all(self):
-		self._test_login()
-		self._test_get_user_play_list()
-		self._test_get_self_play_list()
-		self._test_get_user_dj()
-		self._test_get_self_dj()
-		self._test_search()
-		self._test_get_user_follows()
-		self._test_get_self_follows()
-		self._test_get_user_fans()
-		self._test_get_self_fans()
-		self._test_get_user_event()
-		self._test_get_self_event()
-		self._test_get_user_record()
-		self._test_get_self_record()
-		self._test_get_friends_event()
-		self._test_get_top_playlist_highquality()
-		self._test_get_play_list_detail()
-		self._test_get_music_download_url()
-		self._test_get_lyric()
-		self._test_get_music_comments()
-		self._test_get_album_comments()
-		self._test_get_songs_detail()
-		self._test_get_self_fm()
-		self._test_pretty_print_self_info()
-		self._test_pretty_print_user_play_list()
-		self._test_pretty_print_self_play_list()
-		self._test_pretty_print_search_song()
-		self._test_pretty_print_search_singer()
-		self._test_pretty_print_search_play_list()
-		self._test_pretty_print_search_user()
-		self._test_pretty_print_user_follows()
-		self._test_pretty_print_user_fans()
-		self._test_pretty_print_self_fans()
-		self._test_download_play_list_songs()
-		self._test_get_download_urls_by_ids()
-		self._test_get_songs_name_list_by_ids_list()
-		self._test_get_singer_id_by_name()
-		self._test_download_singer_hot_songs_by_name()
-		self._test_get_song_id_by_name()
-		self._test_get_lyrics_list_by_id()
-		self._test_get_lyrics_list_by_name()
+				continue
 
 class Response(object):
 	"""
@@ -1183,10 +856,4 @@ class InvalidMethod(NetCloudLoginException):
 	pass
 	
 	
-# if __name__ == '__main__':
-# 	phone = 'xxxxxxxxxxx'
-# 	password = 'xxx'
-# 	email = None
-# 	rememberLogin = True
-# 	login = NetCloudLogin(phone = phone,password = password,email = email,rememberLogin = rememberLogin)
-# 	login._test_all()
+
