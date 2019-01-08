@@ -42,11 +42,8 @@ class NetCloudCrawl(object):
         self.singer_id = singer_id
         self.comments_url = "http://music.163.com/weapi/v1/resource/comments/R_SO_4_{song_id}/?csrf_token=".format(song_id = song_id)
         self.singer_url = 'http://music.163.com/artist?id={singer_id}'.format(singer_id = singer_id)
-        # 保存下载文件(歌曲,评论等)的地址
-        self.songs_root_dir = Constants.DEFAULT_SAVE_ROOT_DIR
-        Helper.mkdir(self.songs_root_dir)
         # 同一个歌手的相关文件保存在同一文件夹下
-        self.singer_path = os.path.join(self.songs_root_dir,self.singer_name)
+        self.singer_path = os.path.join(Constants.SINGER_SAVE_DIR,self.singer_name)
         Helper.mkdir(self.singer_path)
         # 同一首歌的相关文件保存在同一文件夹下
         self.song_path = os.path.join(self.singer_path,self.song_name)
@@ -240,22 +237,7 @@ class NetCloudCrawl(object):
         all_comments_json_str_list = [self.extract_comment_info_as_json_str(comment) for comment in all_comments_list]
         Helper.save_lines_to_file(all_comments_json_str_list,self.comments_file_path)
         end_time = time.time() 
-        print("It costs %.2f seconds to crawler <%s>." % (end_time - start_time,self.song_name))
-
-    def get_singer_hot_songs_ids(self,singer_url):
-        '''
-        获取歌手全部id list
-        :param singer_url: 歌手主页url
-        '''
-        ids_list = []
-        html = requests.get(
-            singer_url,headers = Constants.REQUEST_HEADERS,
-            proxies = Constants.PROXIES).text
-        pattern = re.compile(r'<a href="/song\?id=(\d+?)">.*?</a>')
-        ids = re.findall(pattern,html)
-        for id in ids:
-            ids_list.append(id)
-        return ids_list
+        self.logger.info("It costs %.2f seconds to crawler <%s>." % (end_time - start_time,self.song_name))
 
     def get_lyrics_format_json(self):
         '''
@@ -293,7 +275,7 @@ class NetCloudCrawl(object):
         '''
         save_path = self.singer_all_hot_comments_file_path
         Helper.check_file_exits_and_overwrite(save_path)
-        song_ids = self.get_singer_hot_songs_ids(self.singer_url) # 歌手全部歌曲id list
+        song_ids = Helper.get_singer_hot_songs_ids(self.singer_url) # 歌手全部歌曲id list
         # first line is headers
         all_hot_comments_list = []
         for song_id in song_ids:

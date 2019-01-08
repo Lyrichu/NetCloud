@@ -17,8 +17,10 @@ import json
 import logging
 
 import os
+import urllib
 
 import jieba
+import re
 import requests
 import time
 from Crypto.Cipher import AES
@@ -226,6 +228,38 @@ def check_file_exits_and_overwrite(file_path):
         get_logger().warning("%s already exits!Now we will overwrite it!" % file_path)
         # 删除
         os.remove(file_path)
+
+
+def get_singer_hot_songs_ids(singer_url):
+    '''
+    获取歌手全部id list
+    :param singer_url: 歌手主页url
+    '''
+    ids_list = []
+    html = requests.get(
+        singer_url,headers = Constants.REQUEST_HEADERS,
+        proxies = Constants.PROXIES).text
+    print(html)
+    pattern = re.compile(r'<a href="/song\?id=(\d+?)">.*?</a>')
+    ids = re.findall(pattern,html)
+    for id in ids:
+        ids_list.append(id)
+    return ids_list
+
+
+def download_network_resource(url,save_path):
+    '''
+    从网络下载资源,保存到指定的位置
+    :param url: 下载链接
+    :param save_path: 保存位置
+    :return:
+    '''
+    try:
+        urllib.request.urlretrieve(url,save_path)
+    except Exception as e:
+        get_logger().error("download %s from %s error:%s" %(url,save_path,e))
+
+
 
 
 

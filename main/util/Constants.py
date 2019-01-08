@@ -11,6 +11,7 @@
 @description:
 主要用于存放一些全局常量
 """
+import getpass
 import os
 import platform
 
@@ -19,10 +20,25 @@ from main.util import Helper
 
 PROJECT_NAME = "NetCloud"
 MUSIC163_BASE_URL = "http://music.163.com"
+# 当前登录用户名
+CURRENT_LOGIN_USER = getpass.getuser()
 # 文件默认下载路径
-DEFAULT_SAVE_ROOT_DIR = "/tmp/.NetCloud" if platform.system() == "Linux" else "C:\\.NetCloud"
+DEFAULT_SAVE_ROOT_DIR = "/home/%s/.NetCloud" % CURRENT_LOGIN_USER if platform.system() == "Linux" else "C:\\%s\\.NetCloud" % CURRENT_LOGIN_USER
 Helper.mkdir(DEFAULT_SAVE_ROOT_DIR)
-# 请求头文件
+# 歌手全部资源的下载路径
+SINGER_SAVE_DIR = os.path.join(DEFAULT_SAVE_ROOT_DIR,"singer")
+Helper.mkdir(SINGER_SAVE_DIR)
+# 歌单全部资源下载路径
+PLAY_LIST_SAVE_DIR = os.path.join(DEFAULT_SAVE_ROOT_DIR,"play_list")
+Helper.mkdir(PLAY_LIST_SAVE_DIR)
+# 专辑全部资源下载路径
+ALBUM_SAVE_DIR = os.path.join(DEFAULT_SAVE_ROOT_DIR,"album")
+Helper.mkdir(ALBUM_SAVE_DIR)
+# 用户全部资源下载路径(喜欢的歌曲等等)
+MUSIC_USER_SAVE_DIR = os.path.join(DEFAULT_SAVE_ROOT_DIR,"user")
+Helper.mkdir(MUSIC_USER_SAVE_DIR)
+
+# 默认请求头文件
 REQUEST_HEADERS = {
         'Host':"music.163.com",
         'User-Agent':"Mozilla/5.0 (Windows NT 10.0; WOW64; rv:52.0) Gecko/20100101 Firefox/52.0",
@@ -34,6 +50,23 @@ REQUEST_HEADERS = {
         'Referer':'http://music.163.com/',
         'Upgrade-Insecure-Requests':"1"
         }
+# webapi 请求头
+WEBAPI_REQUEST_HEADERS = {
+		    'Accept':'*/*',
+		    'Accept-Language':'zh-CN,zh;q=0.8,gl;q=0.6,zh-TW;q=0.4',
+		    'Connection':'keep-alive',
+		    'Content-Type':'application/x-www-form-urlencoded',
+		    'Referer':'http://music.163.com',
+		    'Host':'music.163.com',
+		    'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.152 Safari/537.36'
+		}
+# 一般的请求头
+COMMON_REQUEST_HEADERS = {
+		    'Referer':"http://music.163.com",
+		    'Cookie':'appver=2.0.2;',
+		    'Content-Type':'application/x-www-form-urlencoded',
+		    'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.152 Safari/537.36'
+		}
 # 代理
 PROXIES = {
         'http:':'http://122.114.31.177',
@@ -59,6 +92,9 @@ SINGER_ALL_HOT_COMMENTS_FILENAME = "singer_all_hot_comments.json"
 LOGGER_FILEPATH = os.path.join(DEFAULT_SAVE_ROOT_DIR,"NetCloud.log")
 # 可视化图形保存位置
 PLOTS_SAVE_NAME = "plots"
+# 热门歌曲保存文件夹名
+HOT_SONGS_SAVE_NAME = "hot_songs"
+
 
 COMMENTS_NUM_PER_PAGE = 20 # 一页评论数量
 
@@ -120,49 +156,92 @@ ECHARTS_USER_AGE_BAR_HTML = "age_count_bar.html"
 # 用户累计听歌数量分布
 ECHARTS_LISTENING_SONGS_NUM_BAR_HTML = "listening_songs_num_bar.html"
 
+# 各种请求方法的名称
+# 使用手机登录
+LOGIN_REQUEST_METHOD = 'LOGIN'
+# 使用邮箱登录
+EMAIL_LOGIN_REQUEST_METHOD = 'EMAIL_LOGIN'
+# 获取用户信息
+USER_INFO_REQUEST_METHOD = 'USER_INFO'
+# 获取用户播放歌单(喜爱歌曲),不需要登录
+USER_PLAY_LIST_REQUEST_METHOD = 'USER_PLAY_LIST'
+# 用户dj(需要填充请求id)
+USER_DJ_REQUEST_METHOD = 'USER_DJ'
+# 用户关注(需要填充请求id)
+USER_FOLLOWS_REQUEST_METHOD = 'USER_FOLLOWS'
+# 用户粉丝
+USER_FOLLOWEDS_REQUEST_METHOD = 'USER_FOLLOWEDS'
+# 用户动态(需要填充请求id)
+USER_EVENT_REQUEST_METHOD = 'USER_EVENT'
+# 用户播放专辑
+USER_RECORD_REQUEST_METHOD = 'USER_RECORD'
+# 用户分享动态
+EVENT_REQUEST_METHOD = 'EVENT'
+# 用户高质量播放清单
+TOP_PLAYLIST_HIGHQUALITY_REQUEST_METHOD = 'TOP_PLAYLIST_HIGHQUALITY'
+# 播放清单详情
+PLAY_LIST_DETAIL_REQUEST_METHOD = 'PLAY_LIST_DETAIL'
+# music id 得到 music url
+MUSIC_URL_REQUEST_METHOD = 'MUSIC_URL'
+# music id 得到歌词
+LYRIC_REQUEST_METHOD = 'LYRIC'
+# music 全部评论(需要填充请求id)
+MUSIC_COMMENT_REQUEST_METHOD = 'MUSIC_COMMENT'
+# 搜索请求
+SEARCH_REQUEST_METHOD = 'SEARCH'
+# 专辑评论(需要填充请求id)
+ALBUM_COMMENT_REQUEST_METHOD = 'ALBUM_COMMENT'
+# 点赞评论(需要请求id)
+LIKE_COMMENT_REQUEST_METHOD = 'LIKE_COMMENT'
+# 歌曲详情
+SONG_DETAIL_REQUEST_METHOD = 'SONG_DETAIL'
+# 专辑内容(需要填充请求id)
+ALBUM_REQUEST_METHOD = 'ALBUM'
+# 个性化fm
+PERSONAL_FM_REQUEST_METHOD = 'PERSONAL_FM'
 
-# 各种请求api
+# 各种请求api(大部分都是weapi)
 REQUEST_METHODS = {
         # 使用手机登录
-        'LOGIN': '/weapi/login/cellphone?csrf_token=',
+        LOGIN_REQUEST_METHOD: '/weapi/login/cellphone?csrf_token=',
         # 使用邮箱登录
-        'EMAIL_LOGIN': '/weapi/login?csrf_token=',
+        EMAIL_LOGIN_REQUEST_METHOD: '/weapi/login?csrf_token=',
         # 获取用户信息
-        'USER_INFO': '/weapi/subcount',
+        USER_INFO_REQUEST_METHOD: '/weapi/subcount',
         # 获取用户播放歌单(喜爱歌曲),不需要登录
-        'USER_PLAY_LIST': '/weapi/user/playlist',
-        # 用户dj
-        'USER_DJ': '/weapi/dj/program/%s',
-        # 用户关注
-        'USER_FOLLOWS': '/weapi/user/getfollows/%s',
+        USER_PLAY_LIST_REQUEST_METHOD: '/weapi/user/playlist',
+        # 用户dj(需要填充请求id)
+        USER_DJ_REQUEST_METHOD: '/weapi/dj/program/%s',
+        # 用户关注(需要填充请求id)
+        USER_FOLLOWS_REQUEST_METHOD: '/weapi/user/getfollows/%s',
         # 用户粉丝
-        'USER_FOLLOWEDS': '/weapi/user/getfolloweds/',
-        # 用户动态
-        'USER_EVENT': '/weapi/event/get/%s',
+        USER_FOLLOWEDS_REQUEST_METHOD: '/weapi/user/getfolloweds/',
+        # 用户动态(需要填充请求id)
+        USER_EVENT_REQUEST_METHOD: '/weapi/event/get/%s',
         # 用户播放专辑
-        'USER_RECORD': '/weapi/v1/play/record',
+        USER_RECORD_REQUEST_METHOD: '/weapi/v1/play/record',
         # 用户分享动态
-        'EVENT': '/weapi/v1/event/get',
+        EVENT_REQUEST_METHOD: '/weapi/v1/event/get',
         # 用户高质量播放清单
-        'TOP_PLAYLIST_HIGHQUALITY': '/weapi/playlist/highquality/list',
+        TOP_PLAYLIST_HIGHQUALITY_REQUEST_METHOD: '/weapi/playlist/highquality/list',
         # 播放清单详情
-        'PLAY_LIST_DETAIL': '/weapi/v3/playlist/detail',
+        PLAY_LIST_DETAIL_REQUEST_METHOD: '/weapi/v3/playlist/detail',
         # music id 得到 music url
-        'MUSIC_URL': '/weapi/song/enhance/player/url',
+        MUSIC_URL_REQUEST_METHOD: '/weapi/song/enhance/player/url',
         # music id 得到歌词
-        'LYRIC': '/api/song/lyric?os=osx&id=%s&lv=-1&kv=-1&tv=-1',
-        # music 全部评论
-        'MUSIC_COMMENT': '/weapi/v1/resource/comments/R_SO_4_%s/?csrf_token=',
-        # 通过关键字得到播放清单
-        'SEARCH': '/api/search/get/',
-        # 专辑评论
-        'ALBUM_COMMENT': '/weapi/v1/resource/comments/R_AL_3_%s/?csrf_token=',
-        # show likes on comment
-        'LIKE_COMMENT': '/weapi/v1/comment/%s',
+        LYRIC_REQUEST_METHOD: '/api/song/lyric?os=osx&id=%s&lv=-1&kv=-1&tv=-1',
+        # music 评论(需要填充请求id)
+        MUSIC_COMMENT_REQUEST_METHOD: '/weapi/v1/resource/comments/R_SO_4_%s/?csrf_token=',
+        # 搜索请求
+        SEARCH_REQUEST_METHOD: '/api/search/get/',
+        # 专辑评论(需要填充请求id)
+        ALBUM_COMMENT_REQUEST_METHOD: '/weapi/v1/resource/comments/R_AL_3_%s/?csrf_token=',
+        # 点赞评论(需要请求id)
+        LIKE_COMMENT_REQUEST_METHOD: '/weapi/v1/comment/%s',
         # 歌曲详情
-        'SONG_DETAIL': '/weapi/v3/song/detail',
-        # 专辑内容
-        'ALBUM': '/weapi/v1/album/%s',
+        SONG_DETAIL_REQUEST_METHOD: '/weapi/v3/song/detail',
+        # 专辑内容(需要填充请求id)
+        ALBUM_REQUEST_METHOD: '/weapi/v1/album/%s',
         # 个性化fm
-        'PERSONAL_FM': '/weapi/v1/radio/get'
+        PERSONAL_FM_REQUEST_METHOD: '/weapi/v1/radio/get'
     }

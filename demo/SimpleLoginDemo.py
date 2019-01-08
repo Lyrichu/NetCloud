@@ -6,20 +6,17 @@
 @license: Apache Licence 
 @contact: 919987476@qq.com
 @site: http://www.github.com/Lyrichu
-@file: SimpleCrawlerDemo.py
-@time: 2019/01/05 19:31
+@file: SimpleLoginDemo.py
+@time: 2019/01/09 03:11
 @description:
-simple crawler demo of NetCloud
+demo for NetCloudLogin
 """
-from test.NetCloudCrawlerTest import NetCloudCrawlerTest
+from test import NetCloudLoginTest
 
 
 def run():
-    crawler_test = NetCloudCrawlerTest()
-    crawler_test.test_all()
-
+    login_test = NetCloudLoginTest.NetCloudLoginTest()
+    login_test.test_get_self_record()
 
 if __name__ == '__main__':
     run()
-
-

@@ -6,20 +6,17 @@
 @license: Apache Licence 
 @contact: 919987476@qq.com
 @site: http://www.github.com/Lyrichu
-@file: SimpleCrawlerDemo.py
-@time: 2019/01/05 19:31
+@file: SimpleAnalyseDemo.py
+@time: 2019/01/09 03:11
 @description:
-simple crawler demo of NetCloud
+NetCloudAnalyse demo
 """
-from test.NetCloudCrawlerTest import NetCloudCrawlerTest
+from test import NetCloudAnalyseTest
 
 
 def run():
-    crawler_test = NetCloudCrawlerTest()
-    crawler_test.test_all()
-
+    analyse_test = NetCloudAnalyseTest.NetCloudAnalyseTest()
+    analyse_test.test_all()
 
 if __name__ == '__main__':
     run()
-
-

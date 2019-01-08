@@ -29,7 +29,7 @@ class NetCloudCrawlerTest:
         self.crawler.save_singer_all_hot_comments_to_file()
 
     def test_get_singer_hot_songs_ids(self):
-        self.logger.info(self.crawler.get_singer_hot_songs_ids(self.singer_url))
+        self.logger.info(Helper.get_singer_hot_songs_ids(self.singer_url))
 
     def test_save_all_comments_to_file(self):
         self.crawler.save_all_comments_to_file()
