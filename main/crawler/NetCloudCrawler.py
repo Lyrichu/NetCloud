@@ -25,8 +25,8 @@ import requests
 import json
 import time
 import os
-import re 
-from threading import Thread
+import re
+from threading import Thread,Lock
 
 from main.util import Constants, Helper
 
@@ -42,8 +42,11 @@ class NetCloudCrawl(object):
         self.singer_id = singer_id
         self.comments_url = "http://music.163.com/weapi/v1/resource/comments/R_SO_4_{song_id}/?csrf_token=".format(song_id = song_id)
         self.singer_url = 'http://music.163.com/artist?id={singer_id}'.format(singer_id = singer_id)
+        # 保存下载文件(歌曲,评论等)的地址
+        self.songs_root_dir = Constants.DEFAULT_SAVE_ROOT_DIR
+        Helper.mkdir(self.songs_root_dir)
         # 同一个歌手的相关文件保存在同一文件夹下
-        self.singer_path = os.path.join(Constants.SINGER_SAVE_DIR,self.singer_name)
+        self.singer_path = os.path.join(self.songs_root_dir,self.singer_name)
         Helper.mkdir(self.singer_path)
         # 同一首歌的相关文件保存在同一文件夹下
         self.song_path = os.path.join(self.singer_path,self.song_name)
@@ -54,7 +57,18 @@ class NetCloudCrawl(object):
         self.users_info_file_path = os.path.join(self.song_path,Constants.USER_INFO_FILENAME)
         # 歌手全部热门歌曲文件保存地址
         self.singer_all_hot_comments_file_path = os.path.join(self.singer_path,Constants.SINGER_ALL_HOT_COMMENTS_FILENAME)
+        # 计数器
+        self.no_counter = 0
+        # 多线程锁,防止文件写入冲突以及计数冲突
+        self.lock = Lock()
 
+
+    def no_counter_init(self):
+        '''
+        计数器初始化
+        :return:
+        '''
+        self.no_counter = 0
 
 
     def get_page_comments_format_raw_json(self,url,page):
@@ -172,6 +186,7 @@ class NetCloudCrawl(object):
         使用多线程保存全部评论文件到磁盘
         :param threads:线程数
         '''
+        self.no_counter_init()
         # 检查文件是否已经存在
         Helper.check_file_exits_and_overwrite(self.comments_file_path)
         start_time = time.time()
@@ -187,7 +202,7 @@ class NetCloudCrawl(object):
                 end_page = (i+1)*pack
             else:
                 end_page = page
-            t = Thread(target = self.save_pages_comments,args = (begin_page,end_page))
+            t = Thread(target = self.save_pages_comments,args = (begin_page,end_page,total_comments_num))
             threads_list.append(t)
         for i in range(threads):
             threads_list[i].start()
@@ -197,11 +212,12 @@ class NetCloudCrawl(object):
         self.logger.info("Using {threads} threads,it costs {cost_time} seconds to crawl <{song_name}>'s all comments!"
                 .format(threads = threads,cost_time = (end_time - start_time),song_name = self.song_name))
 
-    def save_pages_comments(self,begin_page,end_page):
+    def save_pages_comments(self,begin_page,end_page,total_comments_num):
         '''
         保存从begin_page 到 end_page的评论(called by multi threading)
         :param begin_page: 开始页数
         :param end_page: 结束页数
+        :param total_comments_num:全部评论数
         '''
         comments_info_list = [] # 保存全部评论的list,每条评论以json 字符串形式表示
         for i in range(begin_page,end_page):
@@ -209,6 +225,11 @@ class NetCloudCrawl(object):
             try:
                 for item in json_dict[Constants.COMMENTS_KEY]:
                     json_str = self.extract_comment_info_as_json_str(item)
+                    # 更新计数器,需要加锁
+                    if self.lock.acquire():
+                        self.no_counter += 1
+                        self.logger.info("get %d/%d music comment succeed!" %(self.no_counter,total_comments_num))
+                        self.lock.release()
                     comments_info_list.append(json_str)
             except KeyError as key_error:
                 self.logger.error("Fail to get page {page}.".format(page = i+1))
@@ -218,8 +239,10 @@ class NetCloudCrawl(object):
                 self.logger.error(e)
             else:
                 self.logger.info("Successfully to save page {page}.".format(page = i+1))
-        # 追加
-        Helper.save_lines_to_file(comments_info_list,self.comments_file_path,"a")
+        # 追加,加锁写入
+        if self.lock.acquire():
+            Helper.save_lines_to_file(comments_info_list,self.comments_file_path,"a")
+            self.lock.release()
         self.logger.info("Write page {begin_page} to {end_page} successfully!".format(begin_page = begin_page,end_page = end_page))
 
 
@@ -237,7 +260,7 @@ class NetCloudCrawl(object):
         all_comments_json_str_list = [self.extract_comment_info_as_json_str(comment) for comment in all_comments_list]
         Helper.save_lines_to_file(all_comments_json_str_list,self.comments_file_path)
         end_time = time.time() 
-        self.logger.info("It costs %.2f seconds to crawler <%s>." % (end_time - start_time,self.song_name))
+        print("It costs %.2f seconds to crawler <%s>." % (end_time - start_time,self.song_name))
 
     def get_lyrics_format_json(self):
         '''
@@ -276,6 +299,10 @@ class NetCloudCrawl(object):
         save_path = self.singer_all_hot_comments_file_path
         Helper.check_file_exits_and_overwrite(save_path)
         song_ids = Helper.get_singer_hot_songs_ids(self.singer_url) # 歌手全部歌曲id list
+        if len(song_ids) == 0:
+            self.logger.error("crawl from %s to get %s all hot songs ids failed!"
+                              % (self.singer_url,self.singer_name))
+            return
         # first line is headers
         all_hot_comments_list = []
         for song_id in song_ids:

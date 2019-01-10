@@ -129,6 +129,8 @@ DEFAULT_BACKGROUND_PATH = os.path.join(SOURCE_PATH,"JayChou.jpg") # 默认背景
 DEFAULT_FONT_PATH = os.path.join(SOURCE_PATH,"simsun.ttc") # 字体文件
 STOPWORDS_PATH = os.path.join(SOURCE_PATH,"stopwords.txt") # 停用词文件
 PROVINCE_CITIES_JSON_PATH = os.path.join(SOURCE_PATH,"province_cities.json") # 省市文件
+# echarts目前支持的city json 文件
+ECHARTS_SUPPORT_CITIES_JSON_PATH = os.path.join(SOURCE_PATH,"city_coordinates.json")
 
 # echarts html file
 # 评论年月分布

@@ -35,11 +35,11 @@ class NetCloudAnalyse(NetCloudCrawl):
 
 
 
-    def get_users_info_list(self,users_url = None):
+    def get_users_info_list(self,users_url = None,total_urls_num = None):
         '''
         获取一周歌曲下全部用户信息list
         :param users_url: 传入用户url list
-        :param total: 全部用户数量
+        :param total_urls_num: 全部urls 数量,默认是None,不为None时，说明正在进行多线程调用
         :return: list(dict)
         '''
         users_info_list = []
@@ -122,8 +122,15 @@ class NetCloudAnalyse(NetCloudCrawl):
                 }
                 user_info_json_str = json.dumps(user_info_dict, ensure_ascii=False)
                 users_info_list.append(user_info_json_str)
-                self.logger.info(
-                    "Write {current}/{total} user info to file successfully!".format(current=index, total=num))
+                if total_urls_num: # 多线程调用
+                    if self.lock.acquire():
+                        self.no_counter += 1
+                        self.logger.info(
+                            "Write {current}/{total} user info to file successfully!".format(current=self.no_counter, total=total_urls_num))
+                        self.lock.release()
+                else: # 普通单线程调用
+                    self.logger.info(
+                        "Write {current}/{total} user info to file successfully!".format(current=index, total=num))
             except Exception as e:
                 self.logger.error("Fail to get No.{index} comment user's info:{error}"
                                   .format(index=index, error=e))
@@ -145,6 +152,8 @@ class NetCloudAnalyse(NetCloudCrawl):
         多线程加速保存用户信息到磁盘
         :param threads: 线程数
         '''
+        # 计数器初始化
+        self.no_counter_init()
         Helper.check_file_exits_and_overwrite(self.users_info_file_path)
         start_time = time.time()
         users_url = self.load_all_users_url()
@@ -156,7 +165,7 @@ class NetCloudAnalyse(NetCloudCrawl):
                 urls = users_url[i*pack:(i+1)*pack]
             else:
                 urls = users_url[i*pack:]
-            t = Thread(target = self.save_users_info,args=(urls,))
+            t = Thread(target = self.save_users_info,args=(urls,num))
             threads_list.append(t)
         for i in range(threads):
             threads_list[i].start()
@@ -166,15 +175,19 @@ class NetCloudAnalyse(NetCloudCrawl):
         self.logger.info("Using {threads} threads to save users info done,costs {cost_time} seconds"
                 .format(threads = threads,cost_time = (end_time - start_time)))
 
-    def save_users_info(self,users_url):
+    def save_users_info(self,users_url,total_urls_num):
         '''
         保存用户信息到磁盘,该函数会被save_users_info_to_file_by_multi_threading 多线程函数调用
         :param users_url: 待处理的用户url list
         :param total:全部用户url数量
+        :param total_urls_num:全部url数量
         '''
         # 追加写入
-        users_info_list = self.get_users_info_list(users_url)
-        Helper.save_lines_to_file(users_info_list,self.users_info_file_path,"a")
+        users_info_list = self.get_users_info_list(users_url,total_urls_num)
+        # 写入文件需要加锁
+        if self.lock.acquire():
+            Helper.save_lines_to_file(users_info_list,self.users_info_file_path,"a")
+            self.lock.release()
 
 
     
@@ -236,6 +249,9 @@ class NetCloudAnalyse(NetCloudCrawl):
         if not os.path.exists(self.comments_file_path):
             self.save_all_comments_to_file()
         all_comments_list = Helper.load_file_format_json(self.comments_file_path)
+        if len(all_comments_list) == 0:
+            self.logger.error("Load %s failed!" % self.comments_file_path)
+            return
         all_comments_conent = "".join([comment[Constants.COMMENT_CONTENT_KEY] for comment in all_comments_list])
         stopwords = Helper.load_stopwords()
         wordcloud_text = " ".join([word for word in Helper.cut_text(all_comments_conent) if word not in stopwords])
@@ -252,6 +268,9 @@ class NetCloudAnalyse(NetCloudCrawl):
         if not os.path.exists(self.singer_all_hot_comments_file_path):
             self.save_singer_all_hot_comments_to_file()
         all_hot_comments_list = Helper.load_file_format_json(self.singer_all_hot_comments_file_path)
+        if len(all_hot_comments_list) == 0:
+            self.logger.error("Load %s failed!" % self.singer_all_hot_comments_file_path)
+            return
         all_hot_comments_conent = "".join([comment[Constants.COMMENT_CONTENT_KEY] for comment in all_hot_comments_list])
         stopwords = Helper.load_stopwords()
         wordcloud_text = " ".join([word for word in Helper.cut_text(all_hot_comments_conent) if word not in stopwords])
@@ -331,7 +350,8 @@ class NetCloudAnalyse(NetCloudCrawl):
 
 
         # 2. 赞同数分布,柱状图
-        liked_count_list = [comment[Constants.LIKED_COUNT_KEY] for comment in comments_list]
+        liked_count_list = [int(comment[Constants.LIKED_COUNT_KEY]) for comment in comments_list
+                            if comment[Constants.LIKED_COUNT_KEY] != Constants.UNKNOWN_TOKEN]
         self.save_sorted_bar_plot(
             datas = liked_count_list,
             label = "点赞数量",
@@ -360,11 +380,12 @@ class NetCloudAnalyse(NetCloudCrawl):
         # 4. 用户地理位置的分布,使用地图展示
         users_location = [user_info[Constants.LOCATION_KEY] for user_info in users_info_list]
         users_city = [] # 用户所处城市
-        all_cities = Helper.load_all_cities()
+        all_support_cities = Helper.load_echarts_support_cities()
         for location in users_location:
-            for city in all_cities:
+            for city in all_support_cities:
                 if city in location:
-                    users_city.append(city.replace("市",""))
+                    users_city.append(city)
+                    break
         users_city_data = list(Counter(users_city).items()) 
         users_city_geo = Geo("歌曲<{song_name}>评论用户所在地区分布".format(song_name = self.song_name),title_color="#fff", title_pos="left",
                                 width=1200, height=600, background_color='#404a59')
@@ -387,7 +408,8 @@ class NetCloudAnalyse(NetCloudCrawl):
         )
 
         # 6. 用户动态数量的分布,柱状图展示
-        events_count_list = [user_info[Constants.EVENT_COUNT_KEY] for user_info in users_info_list]
+        events_count_list = [int(user_info[Constants.EVENT_COUNT_KEY]) for user_info in users_info_list
+                             if user_info[Constants.EVENT_COUNT_KEY] != Constants.UNKNOWN_TOKEN]
         self.save_sorted_bar_plot(
             datas=events_count_list,
             label="用户动态总数",
@@ -397,7 +419,8 @@ class NetCloudAnalyse(NetCloudCrawl):
         )
 
         # 7. 用户关注人数的分布,柱状图展示
-        follow_count_list = [user_info[Constants.FOLLOW_COUNT_KEY] for user_info in users_info_list]
+        follow_count_list = [int(user_info[Constants.FOLLOW_COUNT_KEY]) for user_info in users_info_list
+                             if user_info[Constants.FOLLOW_COUNT_KEY] != Constants.UNKNOWN_TOKEN]
         self.save_sorted_bar_plot(
             datas=follow_count_list,
             label="用户关注人数",
@@ -407,7 +430,8 @@ class NetCloudAnalyse(NetCloudCrawl):
         )
 
         # 8. 用户粉丝数的分布,柱状图展示
-        fan_count_list = [user_info[Constants.FAN_COUNT_KEY] for user_info in users_info_list]
+        fan_count_list = [int(user_info[Constants.FAN_COUNT_KEY]) for user_info in users_info_list
+                          if user_info[Constants.FAN_COUNT_KEY] != Constants.UNKNOWN_TOKEN]
         self.save_sorted_bar_plot(
             datas=fan_count_list,
             label="用户粉丝人数",
@@ -431,7 +455,8 @@ class NetCloudAnalyse(NetCloudCrawl):
         )
 
         # 10. 用户年龄分布
-        age_count_list = [int(user_info[Constants.USER_AGE_KEY]) for user_info in users_info_list]
+        age_count_list = [int(user_info[Constants.USER_AGE_KEY]) for user_info in users_info_list
+                          if user_info[Constants.USER_AGE_KEY] != Constants.UNKNOWN_TOKEN]
 
         age_count_list = [age for age in age_count_list if age >= 0] # 年龄必须要大于等于0
         self.save_sorted_bar_plot(
@@ -443,7 +468,8 @@ class NetCloudAnalyse(NetCloudCrawl):
         )
 
         # 11. 累计听歌数量分布
-        listening_songs_num_list = [user_info[Constants.LISTENING_SONGS_NUM_KEY] for user_info in users_info_list]
+        listening_songs_num_list = [int(user_info[Constants.LISTENING_SONGS_NUM_KEY]) for user_info in users_info_list
+                                    if user_info[Constants.LISTENING_SONGS_NUM_KEY] != Constants.UNKNOWN_TOKEN]
         # 听歌数量离散化(因为极差太大)
         listening_songs_dict = {'0-100':0,'100-1000':0,'1000-10000':0,'>10000':0}
         for c in listening_songs_num_list:

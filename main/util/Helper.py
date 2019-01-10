@@ -221,6 +221,16 @@ def load_all_cities():
                 all_cities.append(city['name'])
     return all_cities
 
+def load_echarts_support_cities():
+    '''
+    加载pyecharts 目前支持的city list
+    :return: list(str)
+    '''
+    with open(Constants.ECHARTS_SUPPORT_CITIES_JSON_PATH,"r",encoding="utf-8") as fin:
+        content = fin.read()
+        json_dict = json.loads(content)
+    return set(json_dict.keys())
+
 
 def check_file_exits_and_overwrite(file_path):
     # 如果文件已经存在,则覆盖之
@@ -239,7 +249,6 @@ def get_singer_hot_songs_ids(singer_url):
     html = requests.get(
         singer_url,headers = Constants.REQUEST_HEADERS,
         proxies = Constants.PROXIES).text
-    print(html)
     pattern = re.compile(r'<a href="/song\?id=(\d+?)">.*?</a>')
     ids = re.findall(pattern,html)
     for id in ids:

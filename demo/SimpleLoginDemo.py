@@ -16,7 +16,7 @@ from test import NetCloudLoginTest
 
 def run():
     login_test = NetCloudLoginTest.NetCloudLoginTest()
-    login_test.test_get_self_record()
+    login_test.test_all()
 
 if __name__ == '__main__':
     run()
