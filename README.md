@@ -1,4 +1,4 @@
-## **NetCloud——一个网易云音乐评论抓取和分析的Python库**
+## **NetCloud——一个完善的网易云音乐综合爬虫Python库**
 ### &nbsp;&nbsp;目前只需要使用命令pip3 install netcloud 即可以完成模块的安装，支持Windows与Linux系统，完全支持python3,不保证兼容python2,所以强烈建议使用python3.代码github的地址是[Netcloud](https://www.github.com/Lyrichu/NetCloud)
 ##&nbsp;&nbsp;项目结构:
 netcloud/ \
