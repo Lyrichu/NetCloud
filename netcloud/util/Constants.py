@@ -34,7 +34,7 @@ USER_CONFIG_FILE_PATH = "%s/config.xml" % USER_CONFIG_DIR
 
 # 项目路径
 PROJECT_BASE_PATH = Helper.get_current_file_abs_path()[:Helper.get_current_file_abs_path().find(PROJECT_NAME) + len(PROJECT_NAME)]
-SOURCE_PATH = Helper.get_current_file_abs_path()[:Helper.get_current_file_abs_path().find("source") + len("source")] # 资源文件
+SOURCE_PATH = Helper.get_current_file_abs_path() + "/source" # 资源文件
 # 各种资源文件路径
 SOURCE_CONFIG_TEMPLATE_XML_PATH = "%s/config.template.xml" % SOURCE_PATH
 DEFAULT_BACKGROUND_PATH = os.path.join(SOURCE_PATH,"JayChou.jpg") # 默认背景图
