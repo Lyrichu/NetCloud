@@ -17,15 +17,48 @@ import json
 import logging
 
 import os
-import urllib
-
+import socket
+import xml.dom.minidom as xmldom
 import jieba
 import re
 import requests
 import time
 from Crypto.Cipher import AES
+from urllib.request import urlretrieve
+from netcloud.util import Constants
 
-from main.util import Constants
+LOGGER = None # 全局变量
+
+def get_logger():
+    '''
+    返回一个logger,同时输出到终端与日志文件
+    :return:logger
+    '''
+    global LOGGER
+    # 这里的判断是为了防止重复生成logger对象,这会导致同一条日志多次打印
+    if LOGGER:
+        return LOGGER
+    log_file = Constants.LOGGER_FILEPATH
+    logger = logging.getLogger(log_file)
+    logger.setLevel(logging.DEBUG)
+    # 日志输出格式
+    log_formatter = logging.Formatter(
+        "%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s"
+    )
+    # 创建一个handler,用于将日志输出到终端
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(log_formatter)
+
+    # 创建一个handler,用于将日志输出到文件
+    # 日志追加
+    file_handler = logging.FileHandler(log_file,"a")
+    file_handler.setFormatter(log_formatter)
+
+    # 添加handler
+    logger.addHandler(stream_handler)
+    logger.addHandler(file_handler)
+    LOGGER = logger
+    return logger
 
 
 def get_params(page):
@@ -123,31 +156,8 @@ def mkdir(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
-def get_logger():
-    '''
-    返回一个logger,同时输出到终端与日志文件
-    :return:logger
-    '''
-    log_file = Constants.LOGGER_FILEPATH
-    logger = logging.getLogger(log_file)
-    logger.setLevel(logging.DEBUG)
-    # 日志输出格式
-    log_formatter = logging.Formatter(
-        "%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s"
-    )
-    # 创建一个handler,用于将日志输出到终端
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(log_formatter)
 
-    # 创建一个handler,用于将日志输出到文件
-    # 日志追加
-    file_handler = logging.FileHandler(log_file,"a")
-    file_handler.setFormatter(log_formatter)
 
-    # 添加handler
-    logger.addHandler(stream_handler)
-    logger.addHandler(file_handler)
-    return logger
 
 def save_lines_to_file(lines,filename,mode = "w"):
     '''
@@ -263,12 +273,46 @@ def download_network_resource(url,save_path):
     :param save_path: 保存位置
     :return:
     '''
+    socket.setdefaulttimeout(Constants.MAX_TIMEOUT) # 下载歌曲最大超时时间(s)
     try:
-        urllib.request.urlretrieve(url,save_path)
+        urlretrieve(url,save_path)
+    except socket.timeout:
+        get_logger().info("Download %s to %s socket timeout(max timeout = %d s)!" %(url,save_path,Constants.MAX_TIMEOUT))
     except Exception as e:
-        get_logger().error("download %s from %s error:%s" %(url,save_path,e))
+        get_logger().error("Download %s to %s error:%s" %(url,save_path,e))
 
 
+def _parse_config_xml():
+    '''
+    解析配置xml文件
+    :param config_xml:
+    :return:dict
+    '''
+    config_dict = {
+        "phone":None,
+        "password":None,
+        "email":None,
+        "rememberLogin":None,
+        "saveRootDir":None
+    }
+    try:
+        dom = xmldom.parse(Constants.USER_CONFIG_FILE_PATH)
+        for key in config_dict.keys():
+            firstChild = dom.getElementsByTagName(key)[0].firstChild
+            if firstChild:
+                config_dict[key] = firstChild.data
+    except Exception as e:
+        get_logger().info("Parse config file %s failed:%s" %(Constants.USER_CONFIG_FILE_PATH,e))
+
+    return config_dict
+
+def get_save_root_dir():
+    # 加载配置文件,得到文件保存地址
+    save_root_dir = _parse_config_xml()["saveRootDir"]
+    # 如果配置文件没有配置文件保存路径,则使用默认路径
+    if save_root_dir is None:
+        save_root_dir = Constants.DEFAULT_SAVE_ROOT_DIR
+    return save_root_dir
 
 
 

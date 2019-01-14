@@ -11,7 +11,7 @@
 @description:
 demo for NetCloudLogin
 """
-from test import NetCloudLoginTest
+from netcloud.test import NetCloudLoginTest
 
 
 def run():

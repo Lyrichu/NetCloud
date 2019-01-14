@@ -11,19 +11,16 @@
 @description:
 test for NetCloudAnalyse
 """
-from main.analyse.NetCloudAnalyse import NetCloudAnalyse
-from main.util import Helper
+from netcloud.analyse.Analyse import NetCloudAnalyse
+from netcloud.util import Helper
 
 
 class NetCloudAnalyseTest:
     def __init__(self):
         self.logger = Helper.get_logger()
-        song_name = "敢爱"
-        song_id = 186888
-        singer_name = "张国荣"
-        singer_id = 6457
-        self.netcloud_analyse = NetCloudAnalyse(song_name = song_name,song_id = song_id,
-                                                singer_name = singer_name,singer_id = singer_id)
+        song_name = "梦醒时分"
+        singer_name = "李翊君"
+        self.netcloud_analyse = NetCloudAnalyse(song_name = song_name,singer_name = singer_name)
 
 
     def test_load_users_url(self):

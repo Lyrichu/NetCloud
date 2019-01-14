@@ -11,31 +11,30 @@
 reference:https://github.com/xiyouMc/ncmbot
 '''
 import cgi
+from threading import Thread, Lock
 
-from main.crawler.NetCloudCrawler import NetCloudCrawl
 import requests 
 import hashlib
 import json
 import os
 import re
-import urllib
 import traceback
 
-from main.util import Constants, Helper
+import time
+
+from netcloud.util import Constants, Helper
 
 
 class NetCloudLogin(object):
 	"""
-	用于登录的模块
+	网易云音乐登录相关功能以及接口
 	"""
 
-	def __init__(self,phone,password,email = None,rememberLogin = True):
+	def __init__(self,*args,**kwargs):
 		'''
-		登录初始化
-		:param phone: 手机号
-		:param password: 密码
-		:param email: 邮箱
-		:param rememberLogin: 是否记住登录
+		登录初始化,有多种构造函数
+		1.如果不传入任何参数,则表示,从配置文件读取参数值(用户名,密码等)
+		2.否则必须一次传入:phone,password,email(可选,默认None),rememberLogin(可选,默认True)参数
 		'''
 		self.logger = Helper.get_logger()
 		self.method = None
@@ -43,10 +42,55 @@ class NetCloudLogin(object):
 		self.params = {}
 		self.response = Response()
 		self.req = requests.Session() # 构造一个请求session
-		self.phone = phone
-		self.password = password
-		self.email = email
-		self.rememberLogin = rememberLogin
+		if (not args or len(args) <= 1) and (not kwargs and len(kwargs.keys()) <= 1):
+			try:
+				# 从用户机器配置文件加载登录信息
+				config_dict = Helper._parse_config_xml()
+				self.phone = config_dict['phone']
+				self.password = config_dict['password']
+				self.email = None if not config_dict['email'] else config_dict['email']
+				self.rememberLogin = True if config_dict['rememberLogin'].lower() == "true" else False
+				self.logger.info("Load login info from %s succeed!" % Constants.USER_CONFIG_FILE_PATH)
+			except Exception as e:
+				self.logger.error("NetCloud login failed:%s" % e)
+				return
+		else:
+			# 优先选择按照名字传入的参数,再选择顺序参数
+			if "phone" in kwargs.keys():
+				self.phone = kwargs["phone"]
+			else:
+				if len(args) >= 1:
+					self.phone = args[0]
+				else:
+					self.logger.error("Get 'phone' paramerter failed!")
+					return
+			if "password" in kwargs.keys():
+				self.password = kwargs["password"]
+			else:
+				if len(args) >= 2:
+					self.password = args[1]
+				else:
+					self.logger.error("Get 'password' paramerter failed!")
+					return
+			if "email" in kwargs.keys():
+				self.email = kwargs["email"]
+			else:
+				if len(args) >= 3:
+					self.email = args[2]
+				else:
+					self.email = None # 默认值
+			if "rememberLogin" in kwargs.keys():
+				self.rememberLogin = kwargs["rememberLogin"]
+			else:
+				if len(args) >= 4:
+					self.rememberLogin = args[3]
+				else:
+					self.rememberLogin = True # 默认值
+		# 计数器
+		self.no_counter = 0
+		# 多线程锁,防止文件写入冲突以及计数冲突
+		self.lock = Lock()
+
 
 	def __repr__(self):
 		'''
@@ -129,7 +173,10 @@ class NetCloudLogin(object):
 					_url = _url % self.params['uid']
 				# 歌词,音乐评论
 				# 需要填充歌曲id
-				if self.method in (Constants.LYRIC_REQUEST_METHOD,Constants.MUSIC_COMMENT_REQUEST_METHOD):
+				if self.method in (Constants.LYRIC_REQUEST_METHOD,
+								   Constants.MUSIC_COMMENT_REQUEST_METHOD,
+								   Constants.ALBUM_COMMENT_REQUEST_METHOD
+								   ):
 					_url = _url % self.params['id']
 				# 获取歌词不需要格外post数据
 				if self.method == Constants.LYRIC_REQUEST_METHOD:
@@ -546,11 +593,12 @@ class NetCloudLogin(object):
 
 	def download_play_list_songs(self,play_list_id,limit = 1000):
 		'''
-		下载歌单中的全部歌曲
+		下载歌单中的全部歌曲,单线程
 		:param play_list_id: 歌单id
 		:param limit: 下载的最大数量
 		:return:
 		'''
+		start_time = time.time()
 		# 获取歌单详情
 		res = self.get_play_list_detail(play_list_id,limit).json()
 		songs_id_list = []
@@ -569,35 +617,111 @@ class NetCloudLogin(object):
 		# 全部歌曲数目
 		total = len(urls_list)
 		self.logger.info("play list %s has total %d songs!" %(play_list_name,total))
-		self.logger.info("Now start download musics of %s(save path is:%s):" %(play_list_name,save_path))
+		self.logger.info("(single thread)Now start download musics of %s(save path is:%s):" %(play_list_name,save_path))
 		for index,url in enumerate(urls_list,1):
 			try:
 				Helper.download_network_resource(url,os.path.join(save_path,"%s.mp3" %songs_name_and_singer_name_str_list[index-1]))
 				self.logger.info("Successfully download %d/%d(%s)!" %(index,total,songs_name_and_singer_name_str_list[index-1]))
 			except Exception:
 				self.logger.info("Fail download %d/%d(%s)!" %(index,total,songs_name_and_singer_name_str_list[index-1]))
-				continue 
+				continue
+		end_time = time.time()
+		self.logger.info("It costs %.2f seconds to download play list %s(id=%s)'s %d songs to %s "
+						 "using single thread!" %((end_time-start_time),
+												  play_list_name,play_list_id,total,save_path))
+
+	def download_play_list_songs_by_multi_threading(self,play_list_id,limit = 1000,threads = 20):
+		'''
+		下载歌单中的全部歌曲,多线程
+		:param play_list_id: 歌单id
+		:param limit: 下载的最大数量
+		:param threads:线程数
+		:return:
+		'''
+		start_time = time.time()
+		# 获取歌单详情
+		res = self.get_play_list_detail(play_list_id, limit).json()
+		songs_id_list = []
+		# 获取歌单歌曲id list
+		for content in res['playlist']["trackIds"]:
+			songs_id_list.append(content['id'])
+		# 歌单名字
+		play_list_name = res['playlist']['name']
+		# 歌单下载音乐保存地址
+		save_path = os.path.join(Constants.PLAY_LIST_SAVE_DIR, play_list_name)
+		Helper.mkdir(save_path)
+		# 获取歌曲名+歌手名字符串列表
+		songs_name_and_singer_name_str_list = self.get_songs_name_and_singer_name_str_list_by_ids_list(songs_id_list)
+		# 获取歌曲下载url list
+		urls_list = self.get_download_urls_by_ids(songs_id_list)
+		# 全部歌曲数目
+		total = len(urls_list)
+		self.logger.info("play list %s has total %d songs!" % (play_list_name, total))
+		self.logger.info(
+			"(multi threads,thread_num = %d)Now start download musics of %s(save path is:%s):" % (threads,play_list_name, save_path))
+
+		# 计数器初始化为
+		self.no_counter = 0
+		threads_list = []
+		pack = total // threads
+		for i in range(threads):
+			begin_index = i * pack
+			if i < threads - 1:
+				end_index = (i + 1) * pack
+			else:
+				end_index = total
+			urls = urls_list[begin_index:end_index]
+			save_list = [os.path.join(save_path, "%s.mp3" % songs_name_and_singer_name_str_list[index])
+						 for index in range(begin_index, end_index)]
+			t = Thread(target=self._download_list_songs_to_file, args=(urls, save_list, total))
+			threads_list.append(t)
+		for thread in threads_list:
+			thread.start()
+		for thread in threads_list:
+			thread.join()
+		end_time = time.time()
+		self.logger.info("Download play list %s(id=%s)'s all %d songs to %s succeed!"
+						 "Costs %.2f seconds!" % (play_list_name,play_list_id,
+												  total,save_path,(end_time-start_time)))
 
 
-	def get_singer_id_by_name(self,singer_name):
+
+	def get_singer_id_by_name(self,singer_name,choose_index = 0):
 		'''
 		通过歌手名字获取歌手id
 		:param singer_name: 歌手名
+		:param choose_index:选择结果列表第几个结果
 		:return:
 		'''
 		res = self.search(singer_name,type_ = 100).json()
-		singer_id = res['result']['artists'][0]["id"]
+		singer_id = res['result']['artists'][choose_index]["id"]
 		return singer_id
 
-	def get_song_id_by_name(self,song_name):
+	def get_song_id_by_name(self,song_name,condition = 0):
 		'''
 		通过歌曲名获取歌曲id
 		:param song_name: 歌曲名
+		:param condition:搜索一个歌曲,可能会返回多个结果,
+		condition表示筛选条件,可以选择第几个结果,也可以按照
+		歌手进行匹配
 		:return:
 		'''
 		res = self.search(song_name,type_ = 1).json()
-		song_id = res['result']['songs'][0]['id']
-		return song_id
+		songs = res['result']['songs']
+		if isinstance(condition,int):
+			if condition > len(songs):
+				condition = 0
+			return songs[condition]['id']
+		# 使用歌手进行匹配
+		elif isinstance(condition,str):
+			for song in songs:
+				artists = song['artists'] # 艺术家列表
+				singer_names = [artist['name'] for artist in artists]
+				# 如果有匹配的歌手
+				if condition in singer_names:
+					return song['id']
+		# 最后默认返回第一条匹配的结果
+		return songs[0]['id']
 
 
 	def get_lyrics_list_by_id(self,song_id):
@@ -623,19 +747,21 @@ class NetCloudLogin(object):
 		# 再通过歌曲id得到歌词
 		return self.get_lyrics_list_by_id(song_id)
 
+
 		
 	def download_singer_hot_songs_by_name(self,singer_name):
 		'''
-		通过输入歌手名字来下载歌手的全部热门歌曲
+		通过输入歌手名字来下载歌手的全部热门歌曲,单线程实现
 		:param singer_name: 歌手名字
 		:return:
 		'''
+		start_time = time.time()
 		# 热门歌曲保存地址
 		save_path = os.path.join(Constants.SINGER_SAVE_DIR,singer_name,Constants.HOT_SONGS_SAVE_NAME)
 		# 根据名字得到歌手id
 		uid = self.get_singer_id_by_name(singer_name)
 		# 歌手主页地址
-		singer_url = "http://music.163.com/artist?id=%d" %uid
+		singer_url = "http://music.163.com/artist?id=%d" % uid
 		# 歌手全部热门歌曲id list
 		hot_songs_ids = Helper.get_singer_hot_songs_ids(singer_url)
 		# 通过歌曲id得到下载url
@@ -643,10 +769,10 @@ class NetCloudLogin(object):
 		# 通过歌曲id获得歌曲名
 		songs_name_and_singer_name_str_list = self.get_songs_name_and_singer_name_str_list_by_ids_list(hot_songs_ids)
 		# 全部热门歌曲数
-		total = len(hot_songs_ids)
+		total = len(urls_list)
 		Helper.mkdir(save_path)
 		self.logger.info("%s has total %d hot songs!" %(singer_name,total))
-		self.logger.info("Now start download hot musics of %s(save path is:%s):" %(singer_name,save_path))
+		self.logger.info("(single thread)Now start download hot musics of %s(save path is:%s):" %(singer_name,save_path))
 		for index,url in enumerate(urls_list,1):
 			try:
 				# 下载
@@ -655,6 +781,83 @@ class NetCloudLogin(object):
 			except Exception:
 				self.logger.info("Fail download %d/%d(%s)!" %(index,total,songs_name_and_singer_name_str_list[index-1]))
 				continue
+		end_time = time.time()
+		self.logger.info("It costs %.2f seconds to download singer %s's %d hot songs to %s "
+						 "using single thread!" % ((end_time - start_time),
+												   singer_name,total, save_path))
+
+	def download_singer_hot_songs_by_name_with_multi_threading(self, singer_name,threads = 20):
+		'''
+		通过输入歌手名字来下载歌手的全部热门歌曲,多线程实现
+		:param singer_name: 歌手名字
+		:param threads: 线程数
+		:return:
+		'''
+		start_time = time.time()
+		# 热门歌曲保存地址
+		save_path = os.path.join(Constants.SINGER_SAVE_DIR, singer_name, Constants.HOT_SONGS_SAVE_NAME)
+		# 根据名字得到歌手id
+		uid = self.get_singer_id_by_name(singer_name)
+		# 歌手主页地址
+		singer_url = "http://music.163.com/artist?id=%d" % uid
+		# 歌手全部热门歌曲id list
+		hot_songs_ids = Helper.get_singer_hot_songs_ids(singer_url)
+		# 通过歌曲id得到下载url
+		urls_list = self.get_download_urls_by_ids(hot_songs_ids)
+		# 通过歌曲id获得歌曲名
+		songs_name_and_singer_name_str_list = self.get_songs_name_and_singer_name_str_list_by_ids_list(hot_songs_ids)
+		# 全部热门歌曲数
+		total = len(urls_list)
+		Helper.mkdir(save_path)
+		self.logger.info("%s has total %d hot songs!" % (singer_name, total))
+		self.logger.info("(multi threads,thread_num = %d)Now start download hot musics of %s(save path is:%s):"
+						 % (threads,singer_name, save_path))
+		# 计数器初始化为
+		self.no_counter = 0
+		threads_list = []
+		pack = total // threads
+		for i in range(threads):
+			begin_index = i * pack
+			if i < threads - 1:
+				end_index = (i + 1) * pack
+			else:
+				end_index = total
+			urls = urls_list[begin_index:end_index]
+			save_list = [os.path.join(save_path,"%s.mp3" % name)
+									  for name in songs_name_and_singer_name_str_list[begin_index:end_index]]
+			t = Thread(target = self._download_list_songs_to_file,args=(urls,save_list,total))
+			threads_list.append(t)
+		for thread in threads_list:
+			thread.start()
+		for thread in threads_list:
+			thread.join()
+		end_time = time.time()
+		self.logger.info("Download %s's %d hot songs to %s succeed!"
+						 "Costs %.2f seconds!" %(singer_name,total,save_path,(end_time-start_time)))
+
+
+	def _download_list_songs_to_file(self,song_urls,save_path_list,total = None):
+		'''
+		批量通过歌曲的url list 下载歌曲到本地
+		:param song_urls: 歌曲 download url list
+		:param save_path_list: 歌曲保存地址list
+		:return:
+		'''
+		n = len(song_urls)
+		if n != len(save_path_list):
+			raise ParamsError("len(song_urls) must be equal to len(save_path_list)!")
+		for i in range(n):
+			Helper.download_network_resource(song_urls[i],save_path_list[i])
+			if total is None:
+				self.logger.info("Download %d/%d %s to %s!" %(i+1,n,song_urls[i],save_path_list[i]))
+			else:
+				# 加锁,更新计数器
+				if self.lock.acquire():
+					self.no_counter += 1
+					self.logger.info("Download %d/%d %s to %s!" %(self.no_counter,total,song_urls[i],save_path_list[i]))
+					self.lock.release()
+
+
 
 class Response(object):
 	"""

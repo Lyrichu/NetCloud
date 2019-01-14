@@ -14,28 +14,53 @@
 import getpass
 import os
 import platform
+import shutil
 
-from main.util import Helper
-
+from netcloud.util import Helper
 
 PROJECT_NAME = "NetCloud"
+UNKNOWN_TOKEN = "unknown" # 标记未知的标识符
 MUSIC163_BASE_URL = "http://music.163.com"
+
+
 # 当前登录用户名
 CURRENT_LOGIN_USER = getpass.getuser()
 # 文件默认下载路径
 DEFAULT_SAVE_ROOT_DIR = "/home/%s/.NetCloud" % CURRENT_LOGIN_USER if platform.system() == "Linux" else "C:\\%s\\.NetCloud" % CURRENT_LOGIN_USER
+# 在用户机器上配置文件路径
+USER_CONFIG_DIR = "%s/config" % DEFAULT_SAVE_ROOT_DIR
+Helper.mkdir(USER_CONFIG_DIR)
+USER_CONFIG_FILE_PATH = "%s/config.xml" % USER_CONFIG_DIR
+
+# 项目路径
+PROJECT_BASE_PATH = Helper.get_current_file_abs_path()[:Helper.get_current_file_abs_path().find(PROJECT_NAME) + len(PROJECT_NAME)]
+SOURCE_PATH = Helper.get_current_file_abs_path()[:Helper.get_current_file_abs_path().find("source") + len("source")] # 资源文件
+# 各种资源文件路径
+SOURCE_CONFIG_TEMPLATE_XML_PATH = "%s/config.template.xml" % SOURCE_PATH
+DEFAULT_BACKGROUND_PATH = os.path.join(SOURCE_PATH,"JayChou.jpg") # 默认背景图
+DEFAULT_FONT_PATH = os.path.join(SOURCE_PATH,"simsun.ttc") # 字体文件
+STOPWORDS_PATH = os.path.join(SOURCE_PATH,"stopwords.txt") # 停用词文件
+PROVINCE_CITIES_JSON_PATH = os.path.join(SOURCE_PATH,"province_cities.json") # 省市文件
+# echarts目前支持的city json 文件
+ECHARTS_SUPPORT_CITIES_JSON_PATH = os.path.join(SOURCE_PATH,"city_coordinates.json")
+
+
 Helper.mkdir(DEFAULT_SAVE_ROOT_DIR)
+# 如果用户机器配置文件不存在,则从项目路径拷贝过去
+if not os.path.exists(USER_CONFIG_FILE_PATH):
+    shutil.copy(SOURCE_CONFIG_TEMPLATE_XML_PATH,USER_CONFIG_FILE_PATH)
+
 # 歌手全部资源的下载路径
-SINGER_SAVE_DIR = os.path.join(DEFAULT_SAVE_ROOT_DIR,"singer")
+SINGER_SAVE_DIR = os.path.join(Helper.get_save_root_dir(),"singer")
 Helper.mkdir(SINGER_SAVE_DIR)
 # 歌单全部资源下载路径
-PLAY_LIST_SAVE_DIR = os.path.join(DEFAULT_SAVE_ROOT_DIR,"play_list")
+PLAY_LIST_SAVE_DIR = os.path.join(Helper.get_save_root_dir(),"play_list")
 Helper.mkdir(PLAY_LIST_SAVE_DIR)
 # 专辑全部资源下载路径
-ALBUM_SAVE_DIR = os.path.join(DEFAULT_SAVE_ROOT_DIR,"album")
+ALBUM_SAVE_DIR = os.path.join(Helper.get_save_root_dir(),"album")
 Helper.mkdir(ALBUM_SAVE_DIR)
 # 用户全部资源下载路径(喜欢的歌曲等等)
-MUSIC_USER_SAVE_DIR = os.path.join(DEFAULT_SAVE_ROOT_DIR,"user")
+MUSIC_USER_SAVE_DIR = os.path.join(Helper.get_save_root_dir(),"user")
 Helper.mkdir(MUSIC_USER_SAVE_DIR)
 
 # 默认请求头文件
@@ -89,7 +114,7 @@ USER_INFO_FILENAME = "user_info.json"
 # 歌手全部热门评论文件
 SINGER_ALL_HOT_COMMENTS_FILENAME = "singer_all_hot_comments.json"
 # 日志名
-LOGGER_FILEPATH = os.path.join(DEFAULT_SAVE_ROOT_DIR,"NetCloud.log")
+LOGGER_FILEPATH = os.path.join(Helper.get_save_root_dir(),"NetCloud.log")
 # 可视化图形保存位置
 PLOTS_SAVE_NAME = "plots"
 # 热门歌曲保存文件夹名
@@ -119,18 +144,6 @@ USER_DESCRIPTION_KEY = "user_description" # 用户个人描述
 USER_AGE_KEY = "age" # 用户年龄
 LISTENING_SONGS_NUM_KEY = "listening_songs_num" # 用户累计听歌数目
 
-
-UNKNOWN_TOKEN = "unknown" # 标记未知的标识符
-# 项目路径
-PROJECT_BASE_PATH = Helper.get_current_file_abs_path()[:Helper.get_current_file_abs_path().find(PROJECT_NAME) + len(PROJECT_NAME)]
-SOURCE_PATH = os.path.join(PROJECT_BASE_PATH,"source") # 资源文件
-
-DEFAULT_BACKGROUND_PATH = os.path.join(SOURCE_PATH,"JayChou.jpg") # 默认背景图
-DEFAULT_FONT_PATH = os.path.join(SOURCE_PATH,"simsun.ttc") # 字体文件
-STOPWORDS_PATH = os.path.join(SOURCE_PATH,"stopwords.txt") # 停用词文件
-PROVINCE_CITIES_JSON_PATH = os.path.join(SOURCE_PATH,"province_cities.json") # 省市文件
-# echarts目前支持的city json 文件
-ECHARTS_SUPPORT_CITIES_JSON_PATH = os.path.join(SOURCE_PATH,"city_coordinates.json")
 
 # echarts html file
 # 评论年月分布
@@ -247,3 +260,5 @@ REQUEST_METHODS = {
         # 个性化fm
         PERSONAL_FM_REQUEST_METHOD: '/weapi/v1/radio/get'
     }
+
+MAX_TIMEOUT = 10 # 网络请求超时时间

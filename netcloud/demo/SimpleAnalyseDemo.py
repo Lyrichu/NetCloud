@@ -11,7 +11,7 @@
 @description:
 NetCloudAnalyse demo
 """
-from test import NetCloudAnalyseTest
+from netcloud.test import NetCloudAnalyseTest
 
 
 def run():

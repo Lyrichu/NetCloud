@@ -9,7 +9,7 @@
 网易云音乐评论,用户等信息分析,使用pyecharts进行可视化
 '''
 
-from main.crawler.NetCloudCrawler import NetCloudCrawl
+from netcloud.crawler.Crawler import NetCloudCrawler
 from pyecharts import Bar,Geo
 import requests 
 import re 
@@ -22,14 +22,14 @@ from scipy.misc import imread
 from collections import Counter
 from operator import itemgetter
 
-from main.util import Helper, Constants
+from netcloud.util import Helper, Constants
 
 
-class NetCloudAnalyse(NetCloudCrawl):
+class NetCloudAnalyse(NetCloudCrawler):
     """
     网易云音乐歌曲评论,用户信息分析
     """
-    def __init__(self,song_name,song_id,singer_name,singer_id):
+    def __init__(self,song_name,singer_name,song_id = None,singer_id = None):
         super(NetCloudAnalyse, self).__init__(song_name = song_name,song_id = song_id,
                                             singer_name = singer_name,singer_id = singer_id)
 
@@ -152,14 +152,14 @@ class NetCloudAnalyse(NetCloudCrawl):
         多线程加速保存用户信息到磁盘
         :param threads: 线程数
         '''
-        # 计数器初始化
-        self.no_counter_init()
         Helper.check_file_exits_and_overwrite(self.users_info_file_path)
         start_time = time.time()
         users_url = self.load_all_users_url()
         num = len(users_url)
         pack = num//threads # 每个线程处理的url数量
         threads_list = []
+        # 计数器初始化
+        self.no_counter_init()
         for i in range(threads):
             if i < threads-1:
                 urls = users_url[i*pack:(i+1)*pack]
@@ -199,6 +199,8 @@ class NetCloudAnalyse(NetCloudCrawl):
         提取返回所有用户主页url list
         '''
         # list(dict)
+        if not os.path.exists(self.comments_file_path):
+            self.save_all_comments_to_file_by_multi_threading()
         comments_list = Helper.load_file_format_json(self.comments_file_path)
         # 全部用户id
         users_id = [comment[Constants.USER_ID_KEY] for comment in comments_list]
@@ -298,7 +300,7 @@ class NetCloudAnalyse(NetCloudCrawl):
 
     def core_visual_analyse(self):
         '''
-        评论以及用户信息可视化,核心函数
+        评论以及用户信息可视化,核心函数,使用pyecharts绘制
         1. 评论时间的分布,包括月和天,柱状图
         2. 赞同数分布,柱状图
         3. 去除停用词之后评论关键词的分布,柱状图

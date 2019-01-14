@@ -11,18 +11,17 @@
 @description:
 test for NetCloudLogin
 """
-from main.crawler.NetCloudCrawler import NetCloudCrawl
-from main.login.NetCloudLogin import NetCloudLogin
-from main.util import Helper
+from netcloud.login.Login import NetCloudLogin
+from netcloud.login.Printer import NetCloudPrinter
+from netcloud.util import Helper
 
 
-class NetCloudLoginTest:
+class NetCloudLoginTest(object):
     def __init__(self):
         self.logger = Helper.get_logger()
-        phone = '15527594439'
-        password = 'hcc199521'
-
-        self.netcloud_login = NetCloudLogin(phone,password)
+        # 无参数登录
+        self.login_printer = NetCloudPrinter()
+        self.netcloud_login = NetCloudLogin()
 
     def test_login(self):
         response = self.netcloud_login.login()
@@ -125,7 +124,7 @@ class NetCloudLoginTest:
         self.logger.info(response.json())
 
     def test_get_album_comments(self):
-        album_id = 28519
+        album_id = 74992263
         offset = 0
         limit = 20
         response = self.netcloud_login.get_album_comments(id=album_id, offset=offset, limit=limit)
@@ -141,67 +140,76 @@ class NetCloudLoginTest:
         self.logger.info(response.json())
 
     def test_pretty_print_self_info(self):
-        self.netcloud_login.pretty_print_self_info()
+        self.login_printer.pretty_print_self_info()
 
     def test_pretty_print_user_play_list(self):
         uid = 103413749
-        self.netcloud_login.pretty_print_user_play_list(uid=uid)
+        self.login_printer.pretty_print_user_play_list(uid=uid)
 
     def test_pretty_print_self_play_list(self):
-        self.netcloud_login.pretty_print_self_play_list()
+        self.login_printer.pretty_print_self_play_list()
 
     def test_pretty_print_search_song(self):
         keyword = "周杰伦"
-        self.netcloud_login.pretty_print_search_song(search_song_name=keyword, offset=0, limit=30)
+        self.login_printer.pretty_print_search_song(search_song_name=keyword, offset=0, limit=30)
 
     def test_pretty_print_search_singer(self):
         keyword = "陈奕迅"
-        self.netcloud_login.pretty_print_search_singer(search_singer_name=keyword)
+        self.login_printer.pretty_print_search_singer(search_singer_name=keyword)
 
     def test_pretty_print_search_play_list(self):
         keyword = "周杰伦"
-        self.netcloud_login.pretty_print_search_play_list(keyword)
+        self.login_printer.pretty_print_search_play_list(keyword)
 
     def test_pretty_print_search_user(self):
         keyword = "周杰伦"
-        self.netcloud_login.pretty_print_search_user(keyword)
+        self.login_printer.pretty_print_search_user(keyword)
 
     def test_pretty_print_user_follows(self):
         uid = 48548007
-        self.netcloud_login.pretty_print_user_follows(uid)
+        self.login_printer.pretty_print_user_follows(uid)
 
     def test_pretty_print_user_fans(self):
         uid = 44818930
-        self.netcloud_login.pretty_print_user_fans(uid)
+        self.login_printer.pretty_print_user_fans(uid)
 
     def test_pretty_print_self_fans(self):
-        self.netcloud_login.pretty_print_self_fans()
+        self.login_printer.pretty_print_self_fans()
 
     def test_download_play_list_songs(self):
-        play_list_id = 82621571
+        play_list_id = 2353471182
         self.netcloud_login.download_play_list_songs(play_list_id)
+
+    def test_download_play_list_songs_by_multi_threading(self):
+        play_list_id = 2353471182
+        self.netcloud_login.download_play_list_songs_by_multi_threading(play_list_id,threads=50)
 
     def test_get_download_urls_by_ids(self):
         singer_url = "http://music.163.com/artist?id=9621"
-        ids_list = NetCloudCrawl("", 1, "", 1).get_singer_hot_songs_ids(singer_url)
+        ids_list = Helper.get_singer_hot_songs_ids(singer_url)
         self.logger.info(self.netcloud_login.get_download_urls_by_ids(ids_list))
 
     def test_get_songs_name_list_by_ids_list(self):
         singer_url = "http://music.163.com/artist?id=7214"
-        ids_list = NetCloudCrawl("", 1, "", 1).get_singer_hot_songs_ids(singer_url)
+        ids_list = Helper.get_singer_hot_songs_ids(singer_url)
         self.logger.info(self.netcloud_login.get_songs_name_list_by_ids_list(ids_list))
 
     def test_get_singer_id_by_name(self):
-        singer_name = "周杰伦"
+        singer_name = "金海心"
         self.logger.info(self.netcloud_login.get_singer_id_by_name(singer_name))
 
     def test_download_singer_hot_songs_by_name(self):
-        singer_name = "蔡健雅"
+        singer_name = "王力宏"
         self.netcloud_login.download_singer_hot_songs_by_name(singer_name)
 
+    def test_download_singer_hot_songs_by_name_with_multi_threading(self):
+        singer_name = "吴青峰"
+        self.netcloud_login.download_singer_hot_songs_by_name_with_multi_threading(singer_name,20)
+
     def test_get_song_id_by_name(self):
-        song_name = "悲伤的秋千"
-        self.logger.info(self.netcloud_login.get_song_id_by_name(song_name))
+        song_name = "吻别"
+        singer_name = "张玮伽"
+        self.logger.info(self.netcloud_login.get_song_id_by_name(song_name,singer_name))
 
     def test_get_lyrics_list_by_id(self):
         song_id = 247835

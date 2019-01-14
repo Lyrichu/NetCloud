@@ -11,7 +11,7 @@
 @description:
 simple crawler demo of NetCloud
 """
-from test.NetCloudCrawlerTest import NetCloudCrawlerTest
+from netcloud.test.NetCloudCrawlerTest import NetCloudCrawlerTest
 
 
 def run():

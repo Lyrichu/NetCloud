@@ -6,19 +6,12 @@
 # @File   : NetCloudCrawler
 '''
 @Description:
-Netease Cloud Music comments spider,you can use it to crawl all comments of 
-a song,and also you can crawl the users info. With all this content,you can
-do some interesting analyse like view the keywords of comments,the location distribution
-of commenters,the age distribution etc. The class NetCloudCrawler does the job of crawler
-comments,and the other class NetCloudAnalyse does the job of analyse of comments and users'
-info. 
+网易云音乐评论抓取
 reference:@平胸小仙女's article(address:https://www.zhihu.com/question/36081767)
 post encryption part can be found in the following articles:
 author：平胸小仙女
 link：https://www.zhihu.com/question/36081767/answer/140287795
 source：知乎
------------------------
-version2,add multithreading crawler,add supporting to python3.x
 '''
 
 import requests
@@ -28,14 +21,39 @@ import os
 import re
 from threading import Thread,Lock
 
-from main.util import Constants, Helper
+from netcloud.login.Login import NetCloudLogin
+from netcloud.util import Constants, Helper
 
-class NetCloudCrawl(object):
+
+class NetCloudCrawler(object):
     '''
     the main crawler class
     '''
-    def __init__(self,song_name,song_id,singer_name,singer_id):
+    def __init__(self,song_name,singer_name,song_id = None,singer_id = None):
         self.logger = Helper.get_logger()
+        # 如果id缺失,则尝试登录以从name获取id
+        if song_id is None or singer_id is None:
+            # 从用户机器配置文件加载登录信息
+            config_dict = Helper._parse_config_xml()
+            phone = config_dict['phone']
+            password = config_dict['password']
+            email = config_dict['email']
+            rememberLogin = config_dict['rememberLogin']
+            try:
+                netcloud_login = NetCloudLogin(phone,password,email,rememberLogin)
+                if song_id is None:
+                    song_id = netcloud_login.get_song_id_by_name(song_name)
+                    self.logger.info("Login to get %s's song_id(=%s) succeed!"
+                                     %(song_name,song_id))
+                if singer_id is None:
+                    singer_id = netcloud_login.get_singer_id_by_name(singer_name)
+                    self.logger.info("Login to get %s's singer_id(=%s) succeed!"
+                                     %(singer_name,singer_id))
+            except Exception as e:
+                self.logger.error("NetCloud login failed:%s" % e)
+                self.logger.error("Please fullfill singer_id and song_id parameter"
+                                 " or check your login info in %s!" % Constants.USER_CONFIG_FILE_PATH)
+                return
         self.song_name = song_name
         self.song_id = song_id
         self.singer_name = singer_name
@@ -43,10 +61,10 @@ class NetCloudCrawl(object):
         self.comments_url = "http://music.163.com/weapi/v1/resource/comments/R_SO_4_{song_id}/?csrf_token=".format(song_id = song_id)
         self.singer_url = 'http://music.163.com/artist?id={singer_id}'.format(singer_id = singer_id)
         # 保存下载文件(歌曲,评论等)的地址
-        self.songs_root_dir = Constants.DEFAULT_SAVE_ROOT_DIR
-        Helper.mkdir(self.songs_root_dir)
+        self.singer_root_dir = Constants.SINGER_SAVE_DIR
+        Helper.mkdir(self.singer_root_dir)
         # 同一个歌手的相关文件保存在同一文件夹下
-        self.singer_path = os.path.join(self.songs_root_dir,self.singer_name)
+        self.singer_path = os.path.join(self.singer_root_dir,self.singer_name)
         Helper.mkdir(self.singer_path)
         # 同一首歌的相关文件保存在同一文件夹下
         self.song_path = os.path.join(self.singer_path,self.song_name)

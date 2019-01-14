@@ -1,9 +1,6 @@
 =================================================================================================
-Netcloud is a Netease Cloud Music comments spider,you can use it to crawl all comments of 
-a song,and also you can crawl the users info. With all this content,you can
-do some interesting analyse like view the keywords of comments,the location distribution
-of commenters,the age distribution etc. The class NetCloudCrawler does the job of crawler
-comments,and the other class NetCloudAnalyse does the job of analyse of comments and users'
-info. 
+网易云音乐综合爬虫,可以实现:
+1.对于网易云音乐评论以及用户信息的爬取,并且可视化展示;
+2.支持模拟登录,提供包括音乐,歌手,歌单,dj等全方位的api支持
 See http://www.github.com/Lyrichu/NetCloud for details
 =================================================================================================

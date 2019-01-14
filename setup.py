@@ -5,21 +5,18 @@ from setuptools import setup
 setup(
     name="NetCloud",
     version="0.0.4",
-    description='''Netease Cloud Music comments spider,you can use it to crawl all comments of 
-a song,and also you can crawl the users info,download the music,login to get yourself and other
-people's info and activities,and almost anything about NetEase Cloud Music! With all this content,you can
-do some interesting analyse like view the keywords of comments,the location distribution
-of commenters,the age distribution etc. The class NetCloudCrawler does the job of crawler
-comments,and the class NetCloudAnalyse does the job of analyse of comments and users'
-info,the NetCloudLogin class does the job of something with login.''',
+    description='''网易云音乐综合爬虫,可以实现:
+                    1.对于网易云音乐评论以及用户信息的爬取,并且可视化展示;
+                    2.支持模拟登录,提供包括音乐,歌手,歌单,dj等全方位的api支持''',
     author='lyrichu',
     author_email='919987476@qq.com',
     url = "http://www.github.com/Lyrichu/NetCloud",
     maintainer='lyrichu',
     maintainer_email='919987476@qq.com',
-    packages=['NetCloud'],
-    package_dir={'NetCloud': 'src/NetCloud'},
-    package_data={'NetCloud': ['source/*']},
+    packages=['netcloud.analyse','netcloud.crawler',
+              'netcloud.login','netcloud.util',
+              'netcloud.demo','netcloud.test'],
+    package_data={'netcloud.util': ['source/*']},
     install_requires=[
         'pycrypto',
         'requests',
@@ -27,6 +24,6 @@ info,the NetCloudLogin class does the job of something with login.''',
         'pandas',
         'jieba',
         'wordcloud',
-        'scipy',
+        'scipy'
         ]
 )

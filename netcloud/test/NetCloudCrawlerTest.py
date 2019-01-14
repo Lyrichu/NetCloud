@@ -11,19 +11,17 @@
 @description:
 test for NetCloudCrawler
 """
-from main.crawler import NetCloudCrawler
-from main.util import Helper
+from netcloud.crawler import Crawler
+from netcloud.util import Helper
 
 
 class NetCloudCrawlerTest:
     def __init__(self):
         self.logger = Helper.get_logger()
-        self.song_name = "敢爱"
-        self.song_id = 186888
-        self.singer_name = "张国荣"
-        self.singer_id = 6457
-        self.singer_url = 'http://music.163.com/artist?id={singer_id}'.format(singer_id = self.singer_id)
-        self.crawler = NetCloudCrawler.NetCloudCrawl(self.song_name,self.song_id,self.singer_name,self.song_id)
+        self.singer_name = "刘瑞琪"
+        self.song_name = "离开的借口"
+        self.crawler = Crawler.NetCloudCrawler(self.song_name,self.singer_name)
+        self.singer_url = 'http://music.163.com/artist?id={singer_id}'.format(singer_id=self.crawler.singer_id)
 
     def test_save_singer_all_hot_comments_to_file(self):
         self.crawler.save_singer_all_hot_comments_to_file()
@@ -61,3 +59,4 @@ class NetCloudCrawlerTest:
 if __name__ == '__main__':
     test = NetCloudCrawlerTest()
     test.test_all()
+
