@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <netcloud>
 	<login>
-		<phone>15527594439</phone>
-		<password>hcc199521</password>
+		<phone></phone>
+		<password></password>
 		<email></email>
 		<rememberLogin>true</rememberLogin>
 	</login>
