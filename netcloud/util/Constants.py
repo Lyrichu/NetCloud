@@ -23,10 +23,8 @@ UNKNOWN_TOKEN = "unknown" # 标记未知的标识符
 MUSIC163_BASE_URL = "http://music.163.com"
 
 
-# 当前登录用户名
-CURRENT_LOGIN_USER = getpass.getuser()
 # 文件默认下载路径
-DEFAULT_SAVE_ROOT_DIR = "/home/%s/.NetCloud" % CURRENT_LOGIN_USER if platform.system() == "Linux" else "C:\\%s\\.NetCloud" % CURRENT_LOGIN_USER
+DEFAULT_SAVE_ROOT_DIR = Helper._get_default_save_root_dir()
 # 在用户机器上配置文件路径
 USER_CONFIG_DIR = "%s/config" % DEFAULT_SAVE_ROOT_DIR
 Helper.mkdir(USER_CONFIG_DIR)

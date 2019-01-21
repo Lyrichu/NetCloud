@@ -13,10 +13,12 @@
 """
 import base64
 import codecs
+import getpass
 import json
 import logging
 
 import os
+import platform
 import socket
 import xml.dom.minidom as xmldom
 import jieba
@@ -313,6 +315,24 @@ def get_save_root_dir():
     if save_root_dir is None:
         save_root_dir = Constants.DEFAULT_SAVE_ROOT_DIR
     return save_root_dir
+
+def _get_default_save_root_dir():
+    '''
+    获取默认文件保存路径
+    :return:
+    '''
+    system_type = platform.system()
+    current_login_user = getpass.getuser()
+    if system_type == "Windows":
+        return "C:\\%s\\.NetCloud" % current_login_user
+    elif system_type == "Linux":
+        return "/home/%s/.NetCloud" % current_login_user
+    # osx operation system
+    elif system_type == "Darwin":
+        return "/Users/%s/.NetCloud" % current_login_user
+    # 未知的操作系统
+    else:
+        return "/home/%s/.NetCloud" % current_login_user
 
 
 
